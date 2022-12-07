@@ -18,6 +18,7 @@ setup(
         'six==1.14.0',
         'torch==1.3.1',
         'torchvision==0.4.2',
+        'tqdm==4.41.1'
     ],
     packages=[
         'bgp',
