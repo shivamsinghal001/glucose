@@ -20,7 +20,6 @@ from datetime import datetime
 import warnings
 
 from copy import deepcopy
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -491,23 +490,3 @@ class DeepSACT1DEnv(gym.Env):
         else:
             num_channels = int(np.prod(st.shape)/self.state_hist)
             return spaces.Box(low=0, high=np.inf, shape=(num_channels, self.state_hist))
-
-    def get_single_env(self):
-        def get_self():
-            s = deepcopy(self)
-            return s
-
-        e = DummyVecEnv([get_self])
-        obs = e.reset()
-        return e
-
-    def get_multi_env(self, n=10):
-        def get_self():
-            s = deepcopy(self)
-            seed_list = s._seed()
-            s.seeds = {'numpy': seed_list[0], 'sensor': seed_list[1], 'scenario': seed_list[2]}
-            return s
-
-        e = SubprocVecEnv([get_self for i in range(n)], start_method="fork")
-        obs = e.reset()
-        return e
