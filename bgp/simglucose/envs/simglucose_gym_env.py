@@ -20,33 +20,23 @@ from datetime import datetime
 import warnings
 
 from copy import deepcopy
+from ray.tune.registry import register_env
+from ray.rllib.env.multi_agent_env import make_multi_agent
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-class DeepSACT1DEnv(gym.Env):
+class SimglucoseEnv(gym.Env):
     '''
     A gym environment supporting SAC learning. Uses PID control for initialization
     '''
     metadata = {'render.modes': ['human']}
-
-    def __init__(self, reward_fun, patient_name=None, seeds=None,
-                 reset_lim=None, time=False, meal=False, gt=False, load=False,
-                 bw_meals=False, n_hours=24, time_std=None, norm=False, use_old_patient_env=False, action_cap=0.1,
-                 action_bias=0, action_scale=1, basal_scaling=216.0, meal_announce=None,
-                 residual_basal=False, residual_bolus=False, residual_PID=False, fake_gt=False, fake_real=False,
-                 suppress_carbs=False, limited_gt=False, termination_penalty=None, weekly=False,
-                 use_model=False, model=None, model_device='cpu', update_seed_on_reset=False,
-                 deterministic_meal_size=False, deterministic_meal_time=False, deterministic_meal_occurrence=False,
-                 use_pid_load=False, hist_init=False, start_date=None, use_custom_meal=False, custom_meal_num=3,
-                 custom_meal_size=1, starting_glucose=None,
-                 harrison_benedict=False, restricted_carb=False, meal_duration=1, rolling_insulin_lim=None,
-                 universal=False, unrealistic=False, reward_bias=0, carb_error_std=0, carb_miss_prob=0, source_dir=None,
-                 true_reward_fun=None, use_only_during_day=False, noise_scale=1.0, **kwargs):
+    def __init__(self, config={}, **kwargs):
         '''
         patient_name must be 'adolescent#001' to 'adolescent#010',
         or 'adult#001' to 'adult#010', or 'child#001' to 'child#010'
         '''
-        self.source_dir = source_dir
+        config.update(kwargs)
+        self.source_dir = config["source_dir"]
         self.patient_para_file = '{}/bgp/simglucose/params/vpatient_params.csv'.format(self.source_dir)
         self.control_quest = '{}/bgp/simglucose/params/Quest2.csv'.format(self.source_dir)
         self.pid_para_file = '{}/bgp/simglucose/params/pid_params.csv'.format(self.source_dir)
@@ -57,89 +47,89 @@ class DeepSACT1DEnv(gym.Env):
         self.universe = (['child#0{}'.format(str(i).zfill(2)) for i in range(1, 6)] +
                          ['adolescent#0{}'.format(str(i).zfill(2)) for i in range(1, 6)] +
                          ['adult#0{}'.format(str(i).zfill(2)) for i in range(1, 6)])
-        self.universal = universal
-        if seeds is None:
+        self.universal = config["universal"]
+        if config["seeds"] is None:
             seed_list = self._seed()
-            seeds = Seed(numpy_seed=seed_list[0], sensor_seed=seed_list[1], scenario_seed=seed_list[2])
-        if patient_name is None:
+            config["seeds"] = Seed(numpy_seed=seed_list[0], sensor_seed=seed_list[1], scenario_seed=seed_list[2])
+        if config["patient_name"] is None:
             if self.universal:
-                patient_name = np.random.choice(self.universe)
+                config["patient_name"] = np.random.choice(self.universe)
             else:
-                patient_name = 'adolescent#001'
-        np.random.seed(seeds['numpy'])
+                config["patient_name"] = 'adolescent#001'
+        np.random.seed(config["seeds"]['numpy'])
 
-        self.seeds = seeds
+        self.seeds = config["seeds"]
         self.sample_time = 5
         self.day = int(1440 / self.sample_time)
-        self.state_hist = int((n_hours * 60) / self.sample_time)
-        self.time = time
-        self.meal = meal
-        self.norm = norm
-        self.gt = gt
-        self.reward_fun = reward_fun
-        self.reward_bias = reward_bias
-        self.true_reward_fn = true_reward_fun
-        self.action_cap = action_cap
-        self.action_bias = action_bias
-        self.action_scale = action_scale
-        self.basal_scaling = basal_scaling
-        self.meal_announce = meal_announce
-        self.meal_duration = meal_duration
-        self.deterministic_meal_size = deterministic_meal_size
-        self.deterministic_meal_time = deterministic_meal_time
-        self.deterministic_meal_occurrence = deterministic_meal_occurrence
-        self.residual_basal = residual_basal
-        self.residual_bolus = residual_bolus
-        self.carb_miss_prob = carb_miss_prob
-        self.carb_error_std = carb_error_std
-        self.residual_PID = residual_PID
-        self.use_pid_load = use_pid_load
-        self.fake_gt = fake_gt
-        self.fake_real = fake_real
-        self.suppress_carbs = suppress_carbs
-        self.limited_gt = limited_gt
-        self.termination_penalty = termination_penalty
+        self.state_hist = int((config["n_hours"] * 60) / self.sample_time)
+        self.time = config["time"]
+        self.meal = config["meal"]
+        self.norm = config["norm"]
+        self.gt = config["gt"]
+        self.reward_fun = config["reward_fun"]
+        self.reward_bias = config["reward_bias"]
+        self.true_reward_fn = config["true_reward_fun"]
+        self.action_cap = config["action_cap"]
+        self.action_bias = config["action_bias"]
+        self.action_scale = config["action_scale"]
+        self.basal_scaling = config["basal_scaling"]
+        self.meal_announce = config["meal_announce"]
+        self.meal_duration = config["meal_duration"]
+        self.deterministic_meal_size = config["deterministic_meal_size"]
+        self.deterministic_meal_time = config["deterministic_meal_time"]
+        self.deterministic_meal_occurrence = config["deterministic_meal_occurrence"]
+        self.residual_basal = config["residual_basal"]
+        self.residual_bolus = config["residual_bolus"]
+        self.carb_miss_prob = config['carb_miss_prob']
+        self.carb_error_std = config["carb_error_std"]
+        self.residual_PID = config["residual_PID"]
+        self.use_pid_load = config["use_pid_load"]
+        self.fake_gt = config["fake_gt"]
+        self.fake_real = config["fake_real"]
+        self.suppress_carbs = config["suppress_carbs"]
+        self.limited_gt = config["limited_gt"]
+        self.termination_penalty = config["termination_penalty"]
         self.target = 140
         self.low_lim = 140  # Matching BB controller
         self.cooldown = 180
         self.last_cf = self.cooldown + 1
-        self.start_date = start_date
-        self.rolling_insulin_lim = rolling_insulin_lim
+        self.start_date = config["start_date"]
+        self.rolling_insulin_lim = config["rolling_insulin_lim"]
         self.rolling = []
         if self.start_date is None:
             start_time = datetime(2018, 1, 1, 0, 0, 0)
         else:
             start_time = datetime(self.start_date.year, self.start_date.month, self.start_date.day, 0, 0, 0)
-        self.use_only_during_day = use_only_during_day
+        self.use_only_during_day = config["use_only_during_day"]
 
         if self.use_only_during_day:
             start_time = datetime(2018, 1, 1, 5, 0, 0)
-        assert bw_meals  # otherwise code wouldn't make sense
-        if reset_lim is None:
+        assert config["bw_meals"]  # otherwise code wouldn't make sense
+        if config["reset_lim"] is None:
             self.reset_lim = {'lower_lim': 10, 'upper_lim': 1000}
         else:
-            self.reset_lim = reset_lim
-        self.load = load
-        self.hist_init = hist_init
+            self.reset_lim = config["reset_lim"]
+        self.load = config["load"]
+        self.hist_init = config["hist_init"]
         self.env = None
-        self.use_old_patient_env = use_old_patient_env
-        self.model = model
-        self.model_device = model_device
-        self.use_model = use_model
-        self.harrison_benedict = harrison_benedict
-        self.restricted_carb = restricted_carb
-        self.unrealistic = unrealistic
+        self.use_old_patient_env = config["use_old_patient_env"]
+        self.model = config["model"]
+        self.model_device = config["model_device"]
+        self.use_model = config["use_model"]
+        self.harrison_benedict = config["harrison_benedict"]
+        self.restricted_carb = config["restricted_carb"]
+        self.unrealistic = config["unrealistic"]
         self.start_time = start_time
-        self.time_std = time_std
-        self.weekly = weekly
-        self.update_seed_on_reset = update_seed_on_reset
-        self.use_custom_meal = use_custom_meal
-        self.custom_meal_num = custom_meal_num
-        self.custom_meal_size = custom_meal_size
-        self.patient_name = patient_name
-        self.set_patient_dependent_values(patient_name, noise_scale=noise_scale)
+        self.time_std = config["time_std"]
+        self.weekly = config["weekly"]
+        self.update_seed_on_reset = config["update_seed_on_reset"]
+        self.use_custom_meal = config["use_custom_meal"]
+        self.custom_meal_num = config["custom_meal_num"]
+        self.custom_meal_size = config["custom_meal_size"]
+        self.patient_name = config["patient_name"]
+        self.set_patient_dependent_values(self.patient_name, noise_scale=config["noise_scale"])
         self.env.scenario.day = 0
-
+        
     def pid_load(self, n_days):
         for i in range(n_days*self.day):
             b_val = self.pid.step(self.env.CGM_hist[-1])
@@ -490,3 +480,9 @@ class DeepSACT1DEnv(gym.Env):
         else:
             num_channels = int(np.prod(st.shape)/self.state_hist)
             return spaces.Box(low=0, high=np.inf, shape=(num_channels, self.state_hist))
+
+
+register_env("glucose_env", lambda config: SimglucoseEnv(config))
+register_env(
+    "glucose_env_multiagent", make_multi_agent(lambda config: SimglucoseEnv(config))
+)
