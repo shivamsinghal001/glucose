@@ -17,7 +17,7 @@ setup(
         'ray==2.0.1',
         'scipy==1.4.1',
         'six==1.14.0',
-        'torch==1.3.1',
+        'torch==1.13.0',
         'torchvision==0.4.2',
         'tqdm==4.41.1',
         'tree==0.2.4'
