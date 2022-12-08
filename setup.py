@@ -13,7 +13,7 @@ setup(
         'numpy==1.18.1',
         'packaging==20.0',
         'pandas==0.25.3',
-        'ray==0.8.0',
+        'ray==2.0.1',
         'scipy==1.4.1',
         'six==1.14.0',
         'torch==1.3.1',
