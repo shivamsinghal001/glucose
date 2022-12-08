@@ -7,7 +7,8 @@ setup(
     long_description_content_type='text/markdown',
     install_requires=[
         'cachetools==4.1.0',
-        'gym==0.15.4',
+        'dm-tree==0.1.7'
+        'gym==0.21.0',
         'joblib==0.14.1',
         'matplotlib==3.1.2',
         'numpy==1.18.1',
@@ -18,7 +19,8 @@ setup(
         'six==1.14.0',
         'torch==1.3.1',
         'torchvision==0.4.2',
-        'tqdm==4.41.1'
+        'tqdm==4.41.1',
+        'tree==0.2.4'
     ],
     packages=[
         'bgp',
