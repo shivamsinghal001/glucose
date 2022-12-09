@@ -15,7 +15,7 @@ setup(
         'numpy',
         'packaging==20.0',
         'pandas==0.25.3',
-        'pillow',
+        'pillow>=8.1.2',
         'protobuf',
         'ray==2.0.1',
         'scipy==1.4.1',
