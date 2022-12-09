@@ -39,6 +39,7 @@ class SimglucoseEnv(gym.Env):
         '''
         config.update(kwargs)
         self.source_dir = config["source_dir"]
+        print('HERERERERERERERERERERERERERE')
         print(sys.path[0])
         self.patient_para_file = '{}/bgp/simglucose/params/vpatient_params.csv'.format(self.source_dir)
         self.control_quest = '{}/bgp/simglucose/params/Quest2.csv'.format(self.source_dir)
