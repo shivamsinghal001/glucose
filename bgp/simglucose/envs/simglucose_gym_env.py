@@ -6,7 +6,7 @@ from bgp.simglucose.simulation.scenario_gen import (RandomBalancedScenario, Semi
                                                     CustomBalancedScenario)
 from bgp.simglucose.controller.base import Action
 from bgp.simglucose.analysis.risk import magni_risk_index
-from bgp.rl.rlkit_platform import reward_name_to_function
+from bgp.rl import reward_functions
 from bgp.rl.helpers import Seed
 from bgp.rl import pid
 from importlib import resources
@@ -26,6 +26,47 @@ from ray.tune.registry import register_env
 from ray.rllib.env.multi_agent_env import make_multi_agent
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
+def reward_name_to_function(reward_name):
+    if reward_name == 'risk_diff':
+        reward_fun = reward_functions.risk_diff
+    elif reward_name == 'risk_diff_bg':
+        reward_fun = reward_functions.risk_diff_bg
+    elif reward_name == 'risk':
+        reward_fun = reward_functions.reward_risk
+    elif reward_name == 'risk_bg':
+        reward_fun = reward_functions.risk_bg
+    elif reward_name == 'risk_high_bg':
+        reward_fun = reward_functions.risk_high_bg
+    elif reward_name == 'risk_low_bg':
+        reward_fun = reward_functions.risk_low_bg
+    elif reward_name == 'magni_bg':
+        reward_fun = reward_functions.magni_reward
+    elif reward_name == 'magni_misweight':
+        reward_fun = reward_functions.magni_misweight
+    elif reward_name == 'cameron_bg':
+        reward_fun = reward_functions.cameron_reward
+    elif reward_name == 'eps_risk':
+        reward_fun = reward_functions.epsilon_risk
+    elif reward_name == 'target_bg':
+        reward_fun = reward_functions.reward_target
+    elif reward_name == 'cgm_high':
+        reward_fun = reward_functions.reward_cgm_high
+    elif reward_name == 'bg_high':
+        reward_fun = reward_functions.reward_bg_high
+    elif reward_name == 'cgm_low':
+        reward_fun = reward_functions.reward_cgm_low
+    elif reward_name == 'risk_insulin':
+        reward_fun = reward_functions.risk_insulin
+    elif reward_name == 'magni_bg_insulin':
+        reward_fun = reward_functions.magni_bg_insulin
+    elif reward_name == 'magni_bg_insulin_true':
+        reward_fun = reward_functions.magni_bg_insulin_true
+    elif reward_name == 'threshold_bg':
+        reward_fun = reward_functions.threshold
+    else:
+        raise ValueError('{} not a proper reward_name'.format(reward_name))
+    return reward_fun
 
 class SimglucoseEnv(gym.Env):
     '''
