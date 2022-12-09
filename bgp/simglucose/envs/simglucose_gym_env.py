@@ -14,8 +14,6 @@ import numpy as np
 import joblib
 import copy
 import gym
-import os
-import sys
 from gym import spaces
 from gym.utils import seeding
 from datetime import datetime
@@ -39,14 +37,12 @@ class SimglucoseEnv(gym.Env):
         '''
         config.update(kwargs)
         self.source_dir = config["source_dir"]
-        print('HERERERERERERERERERERERERERE')
-        print(sys.path[0])
-        self.patient_para_file = '{}/bgp/simglucose/params/vpatient_params.csv'.format(self.source_dir)
-        self.control_quest = '{}/bgp/simglucose/params/Quest2.csv'.format(self.source_dir)
-        self.pid_para_file = '{}/bgp/simglucose/params/pid_params.csv'.format(self.source_dir)
-        self.pid_env_path = '{}/bgp/simglucose/params'.format(self.source_dir)
-        self.sensor_para_file = '{}/bgp/simglucose/params/sensor_params.csv'.format(self.source_dir)
-        self.insulin_pump_para_file = '{}/bgp/simglucose/params/pump_params.csv'.format(self.source_dir)
+        self.patient_para_file = 'bgp/simglucose/params/vpatient_params.csv'.format(self.source_dir)
+        self.control_quest = 'bgp/simglucose/params/Quest2.csv'.format(self.source_dir)
+        self.pid_para_file = 'bgp/simglucose/params/pid_params.csv'.format(self.source_dir)
+        self.pid_env_path = 'bgp/simglucose/params'.format(self.source_dir)
+        self.sensor_para_file = 'bgp/simglucose/params/sensor_params.csv'.format(self.source_dir)
+        self.insulin_pump_para_file = 'bgp/simglucose/params/pump_params.csv'.format(self.source_dir)
         # reserving half of pop for testing
         self.universe = (['child#0{}'.format(str(i).zfill(2)) for i in range(1, 6)] +
                          ['adolescent#0{}'.format(str(i).zfill(2)) for i in range(1, 6)] +
