@@ -299,7 +299,9 @@ class SimglucoseEnv(gym.Env):
             if self.limited_gt:
                 state = np.array([state[3], self.calculate_iob()])
             return state
-        return np.stack(return_arr).flatten()
+        x = np.stack(return_arr)
+        print(x.shape)
+        return np.stack(return_arr)
 
     def avg_risk(self):
         return np.mean(self.env.risk_hist[max(self.state_hist, 288):])
