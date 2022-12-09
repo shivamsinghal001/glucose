@@ -38,7 +38,7 @@ class SimglucoseEnv(gym.Env):
         '''
         config.update(kwargs)
         self.source_dir = config["source_dir"]
-        with resources.path("simglucose", "params") as data_path:
+        with resources.path("bgp", "simglucose", "params") as data_path:
             self.patient_para_file = data_path / 'vpatient_params.csv'
             self.control_quest = data_path / 'Quest2.csv'
             self.pid_para_file = data_path / 'pid_params.csv'
