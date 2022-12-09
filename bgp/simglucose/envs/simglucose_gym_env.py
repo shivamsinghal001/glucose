@@ -478,10 +478,10 @@ class SimglucoseEnv(gym.Env):
     def observation_space(self):
         st = self.get_state()
         if self.gt:
-            return spaces.Box(low=0, high=np.inf, shape=(len(st),))
+            return spaces.Box(low=0, high=np.inf, shape=(len(st),), dtype=np.float64)
         else:
             num_channels = int(np.prod(st.shape)/self.state_hist)
-            return spaces.Box(low=0, high=np.inf, shape=(num_channels, self.state_hist))
+            return spaces.Box(low=0, high=np.inf, shape=(num_channels, self.state_hist), dtype=np.float64)
 
 
 register_env("glucose_env", lambda config: SimglucoseEnv(config))
