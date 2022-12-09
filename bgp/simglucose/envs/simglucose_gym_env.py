@@ -6,6 +6,7 @@ from bgp.simglucose.simulation.scenario_gen import (RandomBalancedScenario, Semi
                                                     CustomBalancedScenario)
 from bgp.simglucose.controller.base import Action
 from bgp.simglucose.analysis.risk import magni_risk_index
+from bgp.rl.rlkit_platform import reward_name_to_function
 from bgp.rl.helpers import Seed
 from bgp.rl import pid
 from importlib import resources
@@ -68,9 +69,9 @@ class SimglucoseEnv(gym.Env):
         self.meal = config["meal"]
         self.norm = config["norm"]
         self.gt = config["gt"]
-        self.reward_fun = config["reward_fun"]
+        self.reward_fun = reward_name_to_function(config["reward_fun"])
         self.reward_bias = config["reward_bias"]
-        self.true_reward_fn = config["true_reward_fun"]
+        self.true_reward_fn = reward_name_to_function(config["true_reward_fun"])
         self.action_cap = config["action_cap"]
         self.action_bias = config["action_bias"]
         self.action_scale = config["action_scale"]
@@ -299,8 +300,6 @@ class SimglucoseEnv(gym.Env):
             if self.limited_gt:
                 state = np.array([state[3], self.calculate_iob()])
             return state
-        x = np.stack(return_arr)
-        print(x.shape)
         return np.stack(return_arr)
 
     def avg_risk(self):
