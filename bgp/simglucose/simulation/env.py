@@ -9,6 +9,8 @@ import joblib
 from collections import namedtuple
 from bgp.simglucose.simulation.rendering import Viewer
 
+from importlib import resources
+
 try:
     from rllab.envs.base import Step
 except ImportError:
@@ -33,7 +35,9 @@ class T1DSimEnv(object):
         self.patient = patient
         self.state = self.patient.state  # caching for model usage
         # TODO: make more general
-        norm_params_full = joblib.load('{}/bgp/simglucose/params/adult_001_std_params.pkl'.format(source_dir))
+        with resources.path("bgp", "simglucose") as data_path:
+            norm_param_file = data_path / 'params' / 'adult_001_std_params.pkl'
+        norm_params_full = joblib.load(norm_param_file)
         new_mask = [True for _ in range(13)] + [True, False, False, True]  # throwing out BG and CGM
         norm_params_new = {'mu': norm_params_full['mu'][new_mask],
                            'std': norm_params_full['sigma'][new_mask]}
