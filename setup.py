@@ -25,6 +25,7 @@ setup(
         'tqdm==4.41.1',
         'tree==0.2.4'
     ],
+    package_dir={"":"bgp"},
     packages=[
         'bgp',
         'bgp.evaluation',

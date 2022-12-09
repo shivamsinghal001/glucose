@@ -8,6 +8,7 @@ from bgp.simglucose.controller.base import Action
 from bgp.simglucose.analysis.risk import magni_risk_index
 from bgp.rl.helpers import Seed
 from bgp.rl import pid
+from importlib import resources
 
 import pandas as pd
 import numpy as np
@@ -37,12 +38,13 @@ class SimglucoseEnv(gym.Env):
         '''
         config.update(kwargs)
         self.source_dir = config["source_dir"]
-        self.patient_para_file = 'bgp/simglucose/params/vpatient_params.csv'.format(self.source_dir)
-        self.control_quest = 'bgp/simglucose/params/Quest2.csv'.format(self.source_dir)
-        self.pid_para_file = 'bgp/simglucose/params/pid_params.csv'.format(self.source_dir)
-        self.pid_env_path = 'bgp/simglucose/params'.format(self.source_dir)
-        self.sensor_para_file = 'bgp/simglucose/params/sensor_params.csv'.format(self.source_dir)
-        self.insulin_pump_para_file = 'bgp/simglucose/params/pump_params.csv'.format(self.source_dir)
+        with resources.path("simglucose", "params") as data_path:
+            self.patient_para_file = data_path / 'vpatient_params.csv'
+            self.control_quest = data_path / 'Quest2.csv'
+            self.pid_para_file = data_path / 'pid_params.csv'
+            self.pid_env_path = data_path / 'params'
+            self.sensor_para_file = data_path / 'sensor_params.csv'
+            self.insulin_pump_para_file = data_path / 'pump_params.csv'
         # reserving half of pop for testing
         self.universe = (['child#0{}'.format(str(i).zfill(2)) for i in range(1, 6)] +
                          ['adolescent#0{}'.format(str(i).zfill(2)) for i in range(1, 6)] +
