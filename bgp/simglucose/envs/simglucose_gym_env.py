@@ -39,12 +39,12 @@ class SimglucoseEnv(gym.Env):
         config.update(kwargs)
         self.source_dir = config["source_dir"]
         with resources.path("bgp", "simglucose") as data_path:
-            self.patient_para_file = data_path / 'parans' / 'vpatient_params.csv'
-            self.control_quest = data_path / 'parans' / 'Quest2.csv'
-            self.pid_para_file = data_path / 'parans' / 'pid_params.csv'
+            self.patient_para_file = data_path / 'params' / 'vpatient_params.csv'
+            self.control_quest = data_path / 'params' / 'Quest2.csv'
+            self.pid_para_file = data_path / 'params' / 'pid_params.csv'
             self.pid_env_path = data_path / 'params'
-            self.sensor_para_file = data_path /  'parans' / 'sensor_params.csv'
-            self.insulin_pump_para_file = data_path / 'parans' / 'pump_params.csv'
+            self.sensor_para_file = data_path /  'params' / 'sensor_params.csv'
+            self.insulin_pump_para_file = data_path / 'params' / 'pump_params.csv'
         # reserving half of pop for testing
         self.universe = (['child#0{}'.format(str(i).zfill(2)) for i in range(1, 6)] +
                          ['adolescent#0{}'.format(str(i).zfill(2)) for i in range(1, 6)] +
