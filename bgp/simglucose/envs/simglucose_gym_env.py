@@ -14,6 +14,8 @@ import numpy as np
 import joblib
 import copy
 import gym
+import os
+import sys
 from gym import spaces
 from gym.utils import seeding
 from datetime import datetime
@@ -37,6 +39,7 @@ class SimglucoseEnv(gym.Env):
         '''
         config.update(kwargs)
         self.source_dir = config["source_dir"]
+        print(sys.path[0])
         self.patient_para_file = '{}/bgp/simglucose/params/vpatient_params.csv'.format(self.source_dir)
         self.control_quest = '{}/bgp/simglucose/params/Quest2.csv'.format(self.source_dir)
         self.pid_para_file = '{}/bgp/simglucose/params/pid_params.csv'.format(self.source_dir)
