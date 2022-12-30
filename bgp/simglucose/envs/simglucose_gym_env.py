@@ -110,7 +110,6 @@ class SimglucoseEnv(gym.Env):
         self.meal = config["meal"]
         self.norm = config["norm"]
         self.gt = config["gt"]
-        self.reward_fun = reward_name_to_function(config["reward_fun"])
         self.reward_bias = config["reward_bias"]
         self.observed_reward_fn = reward_name_to_function(config["observed_reward_fun"])
         self.true_reward_fn = reward_name_to_function(config["true_reward_fun"])
