@@ -257,6 +257,7 @@ class SimglucoseEnv(gym.Env):
         reward = reward + self.reward_bias
         if self.use_only_during_day and (self.env.time.hour > 20 or self.env.time.hour < 5):
             done = True
+        info['reward'] = reward
         return state, reward, done, info
 
     def announce_meal(self, meal_announce=None):
