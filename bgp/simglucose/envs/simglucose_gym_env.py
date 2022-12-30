@@ -118,6 +118,8 @@ class SimglucoseEnv(gym.Env):
           self.reward_fun = self.observed_reward_fn
         else:
           self.reward_fun = self.true_reward_fn
+        self.true_rew = 0
+        self.rew = 0
         self.action_cap = config["action_cap"]
         self.action_bias = config["action_bias"]
         self.action_scale = config["action_scale"]
@@ -179,6 +181,12 @@ class SimglucoseEnv(gym.Env):
         self.set_patient_dependent_values(self.patient_name, noise_scale=config["noise_scale"])
         self.env.scenario.day = 0
         
+    def get_true_rew(self):
+        return self.true_rew
+    
+    def get_obs_rew(self):
+        return self.rew
+      
     def pid_load(self, n_days):
         for i in range(n_days*self.day):
             b_val = self.pid.step(self.env.CGM_hist[-1])
