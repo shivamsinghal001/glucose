@@ -101,7 +101,7 @@ class SimglucoseEnv(gym.Env):
             else:
                 config["patient_name"] = 'adolescent#001'
         np.random.seed(config["seeds"]['numpy'])
-
+        self.horizon = config["horizon"]
         self.seeds = config["seeds"]
         self.sample_time = 5
         self.day = int(1440 / self.sample_time)
@@ -193,6 +193,8 @@ class SimglucoseEnv(gym.Env):
             _ = self.env.step(action=act, reward_fun=self.reward_fun, cho=None)
 
     def step(self, action):
+        if self.horizon is not None:
+            self.horizon-=1
         return self._step(action, cho=None)
 
     def translate(self, action):
@@ -376,7 +378,10 @@ class SimglucoseEnv(gym.Env):
             return False
 
     def is_done(self):
-        return self.env.BG_hist[-1] < self.reset_lim['lower_lim'] or self.env.BG_hist[-1] > self.reset_lim['upper_lim']
+        horizon_complete = False
+        if self.horizon is not None:
+            horizon_complete = self.horizon <= 0
+        return self.env.BG_hist[-1] < self.reset_lim['lower_lim'] or self.env.BG_hist[-1] > self.reset_lim['upper_lim'] or horizon_complete
 
     def increment_seed(self, incr=1):
         # if type(self.seeds) == Seed:
