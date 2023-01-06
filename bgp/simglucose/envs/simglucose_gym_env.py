@@ -385,7 +385,7 @@ class SimglucoseEnv(gym.Env):
         horizon_complete = False
         if self.horizon is not None:
             horizon_complete = self.horizon <= 0
-        logger.info('Blood glucose: {}'.format(self.env.BG_hist[-1]))
+#         logger.info('Blood glucose: {}'.format(self.env.BG_hist[-1]))
         return self.env.BG_hist[-1] < self.reset_lim['lower_lim'] or self.env.BG_hist[-1] > self.reset_lim['upper_lim'] or horizon_complete
 
     def increment_seed(self, incr=1):
