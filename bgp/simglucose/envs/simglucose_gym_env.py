@@ -20,6 +20,7 @@ from gym import spaces
 from gym.utils import seeding
 from datetime import datetime
 import warnings
+import logging
 
 from copy import deepcopy
 from ray.tune.registry import register_env
@@ -67,6 +68,9 @@ def reward_name_to_function(reward_name):
     else:
         raise ValueError('{} not a proper reward_name'.format(reward_name))
     return reward_fun
+
+  
+logger = logging.getLogger(__name__)
 
 class SimglucoseEnv(gym.Env):
     '''
@@ -381,7 +385,7 @@ class SimglucoseEnv(gym.Env):
         horizon_complete = False
         if self.horizon is not None:
             horizon_complete = self.horizon <= 0
-        print(self.env.BG_hist[-1])
+        logger.info('Blood glucose: {}'.format(self.env.BG_hist[-1]))
         return self.env.BG_hist[-1] < self.reset_lim['lower_lim'] or self.env.BG_hist[-1] > self.reset_lim['upper_lim'] or horizon_complete
 
     def increment_seed(self, incr=1):
