@@ -84,7 +84,8 @@ class SimglucoseEnv(gym.Env):
         '''
         config.update(kwargs)
         self.source_dir = config["source_dir"]
-        with resources.path("bgp", "simglucose") as data_path:
+        with resources.path("bgp.simglucose", "__init__.py") as data_path:
+            data_path = data_path.parent
             self.patient_para_file = data_path / 'params' / 'vpatient_params.csv'
             self.control_quest = data_path / 'params' / 'Quest2.csv'
             self.pid_para_file = data_path / 'params' / 'pid_params.csv'
@@ -197,8 +198,7 @@ class SimglucoseEnv(gym.Env):
             _ = self.env.step(action=act, reward_fun=self.reward_fun, cho=None)
 
     def step(self, action):
-        if self.horizon is not None:
-            self.horizon-=1
+        self.t += 1
         return self._step(action, cho=None)
 
     def translate(self, action):
@@ -384,7 +384,7 @@ class SimglucoseEnv(gym.Env):
     def is_done(self):
         horizon_complete = False
         if self.horizon is not None:
-            horizon_complete = self.horizon <= 0
+            horizon_complete = self.t >= self.horizon
 #         logger.info('Blood glucose: {}'.format(self.env.BG_hist[-1]))
         return self.env.BG_hist[-1] < self.reset_lim['lower_lim'] or self.env.BG_hist[-1] > self.reset_lim['upper_lim'] or horizon_complete
 
@@ -456,6 +456,7 @@ class SimglucoseEnv(gym.Env):
             self._hist_init()
 
     def _reset(self):
+        self.t = 0
         if self.update_seed_on_reset:
             self.increment_seed()
         if self.use_model:

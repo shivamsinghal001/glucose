@@ -35,7 +35,8 @@ class T1DSimEnv(object):
         self.patient = patient
         self.state = self.patient.state  # caching for model usage
         # TODO: make more general
-        with resources.path("bgp", "simglucose") as data_path:
+        with resources.path("bgp.simglucose", "__init__.py") as data_path:
+            data_path = data_path.parent
             norm_param_file = data_path / 'params' / 'adult_001_std_params.pkl'
         norm_params_full = joblib.load(norm_param_file)
         new_mask = [True for _ in range(13)] + [True, False, False, True]  # throwing out BG and CGM
