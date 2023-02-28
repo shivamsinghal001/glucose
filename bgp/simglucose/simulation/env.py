@@ -169,7 +169,11 @@ class T1DSimEnv(object):
             patient_name=self.patient.name,
             meal=CHO,
             patient_state=self.patient.state,
-            true_reward=true_rew)
+            true_reward=true_rew,
+            magni_risk=magni_risk,
+            bg=BG,
+            insulin=insulin,
+        )
 
     def _reset(self):
         if self.perm_sample_time is None:

@@ -65,6 +65,8 @@ def reward_name_to_function(reward_name):
         reward_fun = reward_functions.magni_bg_insulin_true
     elif reward_name == 'threshold_bg':
         reward_fun = reward_functions.threshold
+    elif reward_name == 'expected_patient_cost':
+        reward_fun = reward_functions.expected_patient_cost
     else:
         raise ValueError('{} not a proper reward_name'.format(reward_name))
     return reward_fun
@@ -182,6 +184,7 @@ class SimglucoseEnv(gym.Env):
         self.custom_meal_num = config["custom_meal_num"]
         self.custom_meal_size = config["custom_meal_size"]
         self.patient_name = config["patient_name"]
+        self.reward_scale: float = config.get("reward_scale", 1)
         self.set_patient_dependent_values(self.patient_name, noise_scale=config["noise_scale"])
         self.env.scenario.day = 0
         
@@ -199,7 +202,9 @@ class SimglucoseEnv(gym.Env):
 
     def step(self, action):
         self.t += 1
-        return self._step(action, cho=None)
+        obs, reward, done, info = self._step(action, cho=None)
+        reward *= self.reward_scale
+        return obs, reward, done, info
 
     def translate(self, action):
         if self.action_scale == 'basal':
@@ -258,7 +263,7 @@ class SimglucoseEnv(gym.Env):
         _, reward, _, info = self.env.step(act, reward_fun=self.reward_fun, cho=cho, true_reward_fn=self.true_reward_fn)
         state = self.get_state(self.norm)
         done = self.is_done()
-        if done and self.termination_penalty is not None:
+        if done and self.t < self.horizon and self.termination_penalty is not None:
             reward = reward - self.termination_penalty
         reward = reward + self.reward_bias
         if self.use_only_during_day and (self.env.time.hour > 20 or self.env.time.hour < 5):
