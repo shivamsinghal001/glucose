@@ -9,6 +9,8 @@ from bgp.simglucose.analysis.risk import magni_risk_index
 from bgp.rl import reward_functions
 from bgp.rl.helpers import Seed
 from bgp.rl import pid
+import bgp.simglucose.controller.basal_bolus_ctrller as bbc
+
 from importlib import resources
 
 import pandas as pd
@@ -185,8 +187,14 @@ class SimglucoseEnv(gym.Env):
         self.custom_meal_size = config["custom_meal_size"]
         self.patient_name = config["patient_name"]
         self.reward_scale: float = config.get("reward_scale", 1)
+        self.is_baseline = config.get("is_baseline", False)
         self.set_patient_dependent_values(self.patient_name, noise_scale=config["noise_scale"])
         self.env.scenario.day = 0
+
+        #Baseline
+        self.cnt = bbc.ManualBBController(target=self.target, cr=self.CR, cf=self.CF, basal=self.ideal_basal, sample_rate=self.sample_time,
+                                 use_cf=True, use_bol=True, cooldown=self.cooldown, corrected=True,
+                                 use_low_lim=True, low_lim=self.low_lim)
         
     def get_true_rew(self):
         return self.true_rew
@@ -220,6 +228,13 @@ class SimglucoseEnv(gym.Env):
         # cho controls if carbs are eaten, else taken from meal policy
         if type(action) is np.ndarray:
             action = action.item()
+        ma = self.announce_meal(5)
+        carbs = ma[0]
+        if np.random.uniform() < self.carb_miss_prob:
+            carbs = 0
+        error = np.random.normal(0, self.carb_error_std)
+        carbs = carbs + carbs * error
+        glucose = self.env.CGM_hist[-1]
         if use_action_scale:
             if self.action_scale == 'basal':
                 # 288 samples per day, bolus insulin should be 75% of insulin dose
@@ -231,13 +246,6 @@ class SimglucoseEnv(gym.Env):
         if self.residual_basal:
             action += self.ideal_basal
         if self.residual_bolus:
-            ma = self.announce_meal(5)
-            carbs = ma[0]
-            if np.random.uniform() < self.carb_miss_prob:
-                carbs = 0
-            error = np.random.normal(0, self.carb_error_std)
-            carbs = carbs + carbs * error
-            glucose = self.env.CGM_hist[-1]
             if carbs > 0:
                 carb_correct = carbs / self.CR
                 hyper_correct = (glucose > self.target) * (glucose - self.target) / self.CF
@@ -259,8 +267,11 @@ class SimglucoseEnv(gym.Env):
             self.rolling.append(action)
             if len(self.rolling) > 12:
                 self.rolling = self.rolling[1:]
-        act = Action(basal=0, bolus=action)
-        _, reward, _, info = self.env.step(act, reward_fun=self.reward_fun, cho=cho, true_reward_fn=self.true_reward_fn)
+        if self.is_baseline:
+            act = self.cnt.manual_bb_policy(carbs=carbs, glucose=glucose)
+        else:
+            act = Action(basal=0, bolus=action)
+        _, reward, _, info = self.env.step(action=act, reward_fun=self.reward_fun, cho=cho, true_reward_fn=self.true_reward_fn)
         state = self.get_state(self.norm)
         done = self.is_done()
         if done and self.t < self.horizon and self.termination_penalty is not None:
