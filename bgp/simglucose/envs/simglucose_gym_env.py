@@ -120,10 +120,10 @@ class SimglucoseEnv(gym.Env):
         self.norm = config["norm"]
         self.gt = config["gt"]
         self.reward_bias = config["reward_bias"]
-        self.observed_reward_fn = reward_name_to_function(config["observed_reward_fun"])
+        self.proxy_reward_fn = reward_name_to_function(config["proxy_reward_fun"])
         self.true_reward_fn = reward_name_to_function(config["true_reward_fun"])
-        if config["reward_fun"] == "observed":
-          self.reward_fun = self.observed_reward_fn
+        if config["reward_fun"] == "proxy":
+          self.reward_fun = self.proxy_reward_fn
         else:
           self.reward_fun = self.true_reward_fn
         self.true_rew = 0
