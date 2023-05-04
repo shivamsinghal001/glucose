@@ -12,36 +12,33 @@ class TwinSAC(TorchRLAlgorithm):
     """
     SAC with the twin architecture from TD3.
     """
+
     def __init__(
-            self,
-            env,
-            policy,
-            qf1,
-            qf2,
-            vf,
-
-            policy_lr=1e-3,
-            qf_lr=1e-3,
-            vf_lr=1e-3,
-            policy_mean_reg_weight=1e-3,
-            policy_std_reg_weight=1e-3,
-            policy_pre_activation_weight=0.,
-            optimizer_class=optim.Adam,
-
-            train_policy_with_reparameterization=True,
-            soft_target_tau=1e-2,
-            policy_update_period=1,
-            target_update_period=1,
-            plotter=None,
-            render_eval_paths=False,
-            eval_deterministic=True,
-
-            eval_policy=None,
-            exploration_policy=None,
-
-            use_automatic_entropy_tuning=True,
-            target_entropy=None,
-            **kwargs
+        self,
+        env,
+        policy,
+        qf1,
+        qf2,
+        vf,
+        policy_lr=1e-3,
+        qf_lr=1e-3,
+        vf_lr=1e-3,
+        policy_mean_reg_weight=1e-3,
+        policy_std_reg_weight=1e-3,
+        policy_pre_activation_weight=0.0,
+        optimizer_class=optim.Adam,
+        train_policy_with_reparameterization=True,
+        soft_target_tau=1e-2,
+        policy_update_period=1,
+        target_update_period=1,
+        plotter=None,
+        render_eval_paths=False,
+        eval_deterministic=True,
+        eval_policy=None,
+        exploration_policy=None,
+        use_automatic_entropy_tuning=True,
+        target_entropy=None,
+        **kwargs
     ):
         if eval_policy is None:
             if eval_deterministic:
@@ -64,16 +61,16 @@ class TwinSAC(TorchRLAlgorithm):
         self.policy_mean_reg_weight = policy_mean_reg_weight
         self.policy_std_reg_weight = policy_std_reg_weight
         self.policy_pre_activation_weight = policy_pre_activation_weight
-        self.train_policy_with_reparameterization = (
-            train_policy_with_reparameterization
-        )
+        self.train_policy_with_reparameterization = train_policy_with_reparameterization
 
         self.use_automatic_entropy_tuning = use_automatic_entropy_tuning
         if self.use_automatic_entropy_tuning:
             if target_entropy:
                 self.target_entropy = target_entropy
             else:
-                self.target_entropy = -np.prod(self.env.action_space.shape).item()  # heuristic value from Tuomas
+                self.target_entropy = -np.prod(
+                    self.env.action_space.shape
+                ).item()  # heuristic value from Tuomas
             self.log_alpha = ptu.zeros(1, requires_grad=True)
             self.alpha_optimizer = optimizer_class(
                 [self.log_alpha],
@@ -106,19 +103,21 @@ class TwinSAC(TorchRLAlgorithm):
 
     def _do_training(self):
         batch = self.get_batch()
-        rewards = batch['rewards']
-        terminals = batch['terminals']
-        obs = batch['observations']
-        actions = batch['actions']
-        next_obs = batch['next_observations']
+        rewards = batch["rewards"]
+        terminals = batch["terminals"]
+        obs = batch["observations"]
+        actions = batch["actions"]
+        next_obs = batch["next_observations"]
 
         q1_pred = self.qf1(obs, actions)
         q2_pred = self.qf2(obs, actions)
         v_pred = self.vf(obs)
         # Make sure policy accounts for squashing functions like tanh correctly!
-        policy_outputs = self.policy(obs,
-                                     reparameterize=self.train_policy_with_reparameterization,
-                                     return_log_prob=True)
+        policy_outputs = self.policy(
+            obs,
+            reparameterize=self.train_policy_with_reparameterization,
+            return_log_prob=True,
+        )
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
 
         """
@@ -128,7 +127,9 @@ class TwinSAC(TorchRLAlgorithm):
             """
             Alpha Loss
             """
-            alpha_loss = -(self.log_alpha * (log_pi + self.target_entropy).detach()).mean()
+            alpha_loss = -(
+                self.log_alpha * (log_pi + self.target_entropy).detach()
+            ).mean()
             self.alpha_optimizer.zero_grad()
             alpha_loss.backward()
             self.alpha_optimizer.step()
@@ -141,7 +142,10 @@ class TwinSAC(TorchRLAlgorithm):
         QF Loss
         """
         target_v_values = self.target_vf(next_obs)
-        q_target = self.reward_scale * rewards + (1. - terminals) * self.discount * target_v_values
+        q_target = (
+            self.reward_scale * rewards
+            + (1.0 - terminals) * self.discount * target_v_values
+        )
         qf1_loss = self.qf_criterion(q1_pred, q_target.detach())
         qf2_loss = self.qf_criterion(q2_pred, q_target.detach())
 
@@ -152,7 +156,7 @@ class TwinSAC(TorchRLAlgorithm):
             self.qf1(obs, new_actions),
             self.qf2(obs, new_actions),
         )
-        v_target = q_new_actions - alpha*log_pi
+        v_target = q_new_actions - alpha * log_pi
         vf_loss = self.vf_criterion(v_pred, v_target.detach())
 
         """
@@ -176,11 +180,11 @@ class TwinSAC(TorchRLAlgorithm):
             Policy Loss
             """
             if self.train_policy_with_reparameterization:
-                policy_loss = (alpha*log_pi - q_new_actions).mean()
+                policy_loss = (alpha * log_pi - q_new_actions).mean()
             else:
                 log_policy_target = q_new_actions - v_pred
                 policy_loss = (
-                    log_pi * (alpha*log_pi - log_policy_target).detach()
+                    log_pi * (alpha * log_pi - log_policy_target).detach()
                 ).mean()
             mean_reg_loss = self.policy_mean_reg_weight * (policy_mean**2).mean()
             std_reg_loss = self.policy_std_reg_weight * (policy_log_std**2).mean()
@@ -196,9 +200,7 @@ class TwinSAC(TorchRLAlgorithm):
             self.policy_optimizer.step()
 
         if self._n_train_steps_total % self.target_update_period == 0:
-            ptu.soft_update_from_to(
-                self.vf, self.target_vf, self.soft_target_tau
-            )
+            ptu.soft_update_from_to(self.vf, self.target_vf, self.soft_target_tau)
 
         """
         Save some statistics for eval using just one batch.
@@ -223,39 +225,49 @@ class TwinSAC(TorchRLAlgorithm):
                 policy_reg_loss = mean_reg_loss + std_reg_loss + pre_activation_reg_loss
                 policy_loss = policy_loss + policy_reg_loss
 
-            self.eval_statistics['QF1 Loss'] = np.mean(ptu.get_numpy(qf1_loss))
-            self.eval_statistics['QF2 Loss'] = np.mean(ptu.get_numpy(qf2_loss))
-            self.eval_statistics['VF Loss'] = np.mean(ptu.get_numpy(vf_loss))
-            self.eval_statistics['Policy Loss'] = np.mean(ptu.get_numpy(
-                policy_loss
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Q1 Predictions',
-                ptu.get_numpy(q1_pred),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Q2 Predictions',
-                ptu.get_numpy(q2_pred),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'V Predictions',
-                ptu.get_numpy(v_pred),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Log Pis',
-                ptu.get_numpy(log_pi),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Policy mu',
-                ptu.get_numpy(policy_mean),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Policy log std',
-                ptu.get_numpy(policy_log_std),
-            ))
+            self.eval_statistics["QF1 Loss"] = np.mean(ptu.get_numpy(qf1_loss))
+            self.eval_statistics["QF2 Loss"] = np.mean(ptu.get_numpy(qf2_loss))
+            self.eval_statistics["VF Loss"] = np.mean(ptu.get_numpy(vf_loss))
+            self.eval_statistics["Policy Loss"] = np.mean(ptu.get_numpy(policy_loss))
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Q1 Predictions",
+                    ptu.get_numpy(q1_pred),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Q2 Predictions",
+                    ptu.get_numpy(q2_pred),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "V Predictions",
+                    ptu.get_numpy(v_pred),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Log Pis",
+                    ptu.get_numpy(log_pi),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Policy mu",
+                    ptu.get_numpy(policy_mean),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Policy log std",
+                    ptu.get_numpy(policy_log_std),
+                )
+            )
             if self.use_automatic_entropy_tuning:
-                self.eval_statistics['Alpha'] = alpha.item()
-                self.eval_statistics['Alpha Loss'] = alpha_loss.item()
+                self.eval_statistics["Alpha"] = alpha.item()
+                self.eval_statistics["Alpha Loss"] = alpha_loss.item()
 
     @property
     def networks(self):
@@ -269,9 +281,9 @@ class TwinSAC(TorchRLAlgorithm):
 
     def get_epoch_snapshot(self, epoch):
         snapshot = super().get_epoch_snapshot(epoch)
-        snapshot['qf1'] = self.qf1
-        snapshot['qf2'] = self.qf2
-        snapshot['policy'] = self.policy
-        snapshot['vf'] = self.vf
-        snapshot['target_vf'] = self.target_vf
+        snapshot["qf1"] = self.qf1
+        snapshot["qf2"] = self.qf2
+        snapshot["policy"] = self.policy
+        snapshot["vf"] = self.vf
+        snapshot["target_vf"] = self.target_vf
         return snapshot

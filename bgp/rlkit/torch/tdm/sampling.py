@@ -5,14 +5,14 @@ from bgp.rlkit.torch.tdm.base import UniversalPolicy
 
 class MultigoalSimplePathSampler(object):
     def __init__(
-            self,
-            env,
-            policy,
-            max_samples,
-            max_path_length,
-            tau_sampling_function,
-            goal_sampling_function,
-            cycle_taus_for_rollout=True,
+        self,
+        env,
+        policy,
+        max_samples,
+        max_path_length,
+        tau_sampling_function,
+        goal_sampling_function,
+        cycle_taus_for_rollout=True,
     ):
         self.env = env
         self.policy = policy
@@ -41,17 +41,16 @@ class MultigoalSimplePathSampler(object):
 
 
 def multitask_rollout(
-        env,
-        agent: UniversalPolicy,
-        init_tau,
-        max_path_length=np.inf,
-        goal=None,
-        animated=False,
-        decrement_tau=False,
-        cycle_tau=False,
-        get_action_kwargs=None,
+    env,
+    agent: UniversalPolicy,
+    init_tau,
+    max_path_length=np.inf,
+    goal=None,
+    animated=False,
+    decrement_tau=False,
+    cycle_tau=False,
+    get_action_kwargs=None,
 ):
-
     if get_action_kwargs is None:
         get_action_kwargs = {}
     observations = []
@@ -112,7 +111,7 @@ def multitask_rollout(
         agent_infos=np.array(agent_infos),
         env_infos=np.array(env_infos),
         num_steps_left=np.array(taus),
-        goals=_expand_goal(goal, len(terminals))
+        goals=_expand_goal(goal, len(terminals)),
     )
 
 

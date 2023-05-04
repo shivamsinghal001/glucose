@@ -8,7 +8,7 @@ from numbers import Number
 import numpy as np
 
 
-def get_generic_path_information(paths, stat_prefix=''):
+def get_generic_path_information(paths, stat_prefix=""):
     """
     Get an OrderedDict with a bunch of statistic names and values.
     """
@@ -16,19 +16,21 @@ def get_generic_path_information(paths, stat_prefix=''):
     returns = [sum(path["rewards"]) for path in paths]
 
     rewards = np.vstack([path["rewards"] for path in paths])
-    statistics.update(create_stats_ordered_dict('Rewards', rewards,
-                                                stat_prefix=stat_prefix))
-    statistics.update(create_stats_ordered_dict('Returns', returns,
-                                                stat_prefix=stat_prefix))
+    statistics.update(
+        create_stats_ordered_dict("Rewards", rewards, stat_prefix=stat_prefix)
+    )
+    statistics.update(
+        create_stats_ordered_dict("Returns", returns, stat_prefix=stat_prefix)
+    )
     actions = [path["actions"] for path in paths]
     if len(actions[0].shape) == 1:
         actions = np.hstack([path["actions"] for path in paths])
     else:
         actions = np.vstack([path["actions"] for path in paths])
-    statistics.update(create_stats_ordered_dict(
-        'Actions', actions, stat_prefix=stat_prefix
-    ))
-    statistics['Num Paths'] = len(paths)
+    statistics.update(
+        create_stats_ordered_dict("Actions", actions, stat_prefix=stat_prefix)
+    )
+    statistics["Num Paths"] = len(paths)
 
     return statistics
 
@@ -39,11 +41,11 @@ def get_average_returns(paths):
 
 
 def create_stats_ordered_dict(
-        name,
-        data,
-        stat_prefix=None,
-        always_show_all_stats=True,
-        exclude_max_min=False,
+    name,
+    data,
+    stat_prefix=None,
+    always_show_all_stats=True,
+    exclude_max_min=False,
 ):
     if stat_prefix is not None:
         name = "{} {}".format(stat_prefix, name)
@@ -71,15 +73,16 @@ def create_stats_ordered_dict(
         else:
             data = np.concatenate(data)
 
-    if (isinstance(data, np.ndarray) and data.size == 1
-            and not always_show_all_stats):
+    if isinstance(data, np.ndarray) and data.size == 1 and not always_show_all_stats:
         return OrderedDict({name: float(data)})
 
-    stats = OrderedDict([
-        (name + ' Mean', np.mean(data)),
-        (name + ' Std', np.std(data)),
-    ])
+    stats = OrderedDict(
+        [
+            (name + " Mean", np.mean(data)),
+            (name + " Std", np.std(data)),
+        ]
+    )
     if not exclude_max_min:
-        stats[name + ' Max'] = np.max(data)
-        stats[name + ' Min'] = np.min(data)
+        stats[name + " Max"] = np.max(data)
+        stats[name + " Min"] = np.min(data)
     return stats

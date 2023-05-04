@@ -7,12 +7,12 @@ from bgp.rlkit.torch.networks import TanhMlpPolicy, FlattenMlp
 
 class TdmNormalizer(object):
     def __init__(
-            self,
-            env,
-            vectorized,
-            normalize_tau=False,
-            max_tau=0,
-            log_tau=False,
+        self,
+        env,
+        vectorized,
+        normalize_tau=False,
+        max_tau=0,
+        log_tau=False,
     ):
         if normalize_tau:
             assert max_tau > 0, "Max tau must be larger than 0 if normalizing"
@@ -50,13 +50,7 @@ class TdmNormalizer(object):
             num_steps_left = (num_steps_left - self.tau_mean) / self.tau_std
         return num_steps_left
 
-    def normalize_all(
-            self,
-            obs,
-            actions,
-            goals,
-            num_steps_left
-    ):
+    def normalize_all(self, obs, actions, goals, num_steps_left):
         if obs is not None:
             obs = self.obs_normalizer.normalize(obs)
         if actions is not None:
@@ -76,13 +70,13 @@ class TdmNormalizer(object):
 
 class TdmQf(FlattenMlp):
     def __init__(
-            self,
-            env,
-            vectorized,
-            norm_order,
-            structure='norm_difference',
-            tdm_normalizer: TdmNormalizer=None,
-            **kwargs
+        self,
+        env,
+        vectorized,
+        norm_order,
+        structure="norm_difference",
+        tdm_normalizer: TdmNormalizer = None,
+        **kwargs
     ):
         """
 
@@ -97,19 +91,17 @@ class TdmQf(FlattenMlp):
         :param kwargs:
         """
         assert structure in [
-            'norm_difference',
-            'none',
+            "norm_difference",
+            "none",
         ]
-        if structure == 'difference':
+        if structure == "difference":
             assert vectorized, "difference only makes sense for vectorized"
         self.save_init_params(locals())
         self.observation_dim = env.observation_space.low.size
         self.action_dim = env.action_space.low.size
         self.goal_dim = env.goal_dim
         super().__init__(
-            input_size=(
-                    self.observation_dim + self.action_dim + self.goal_dim + 1
-            ),
+            input_size=(self.observation_dim + self.action_dim + self.goal_dim + 1),
             output_size=self.goal_dim if vectorized else 1,
             **kwargs
         )
@@ -120,42 +112,43 @@ class TdmQf(FlattenMlp):
         self.tdm_normalizer = tdm_normalizer
 
     def forward(
-            self,
-            observations,
-            actions,
-            goals,
-            num_steps_left,
-            return_internal_prediction=False,
+        self,
+        observations,
+        actions,
+        goals,
+        num_steps_left,
+        return_internal_prediction=False,
     ):
         if self.tdm_normalizer is not None:
-            observations, actions, goals, num_steps_left = (
-                self.tdm_normalizer.normalize_all(
-                    observations, actions, goals, num_steps_left
-                )
+            (
+                observations,
+                actions,
+                goals,
+                num_steps_left,
+            ) = self.tdm_normalizer.normalize_all(
+                observations, actions, goals, num_steps_left
             )
 
-        predictions = super().forward(
-            observations, actions, goals, num_steps_left
-        )
+        predictions = super().forward(observations, actions, goals, num_steps_left)
         if return_internal_prediction:
             return predictions
 
         if self.vectorized:
-            if self.structure == 'norm_difference':
-                output = - torch.abs(goals - predictions)
-            elif self.structure == 'none':
+            if self.structure == "norm_difference":
+                output = -torch.abs(goals - predictions)
+            elif self.structure == "none":
                 output = predictions
             else:
                 raise TypeError("Invalid structure: {}".format(self.structure))
         else:
-            if self.structure == 'norm_difference':
-                output = - torch.norm(
+            if self.structure == "norm_difference":
+                output = -torch.norm(
                     goals - predictions,
                     p=self.norm_order,
                     dim=1,
                     keepdim=True,
                 )
-            elif self.structure == 'none':
+            elif self.structure == "none":
                 output = predictions
             else:
                 raise TypeError(
@@ -165,9 +158,7 @@ class TdmQf(FlattenMlp):
                     )
                 )
         if self.tdm_normalizer is not None:
-            output = self.tdm_normalizer.distance_normalizer.denormalize_scale(
-                output
-            )
+            output = self.tdm_normalizer.distance_normalizer.denormalize_scale(output)
         return output
 
 
@@ -175,12 +166,8 @@ class TdmPolicy(TanhMlpPolicy):
     """
     Rather than giving `g`, give `g - goalify(s)` as input.
     """
-    def __init__(
-            self,
-            env,
-            tdm_normalizer: TdmNormalizer=None,
-            **kwargs
-    ):
+
+    def __init__(self, env, tdm_normalizer: TdmNormalizer = None, **kwargs):
         self.save_init_params(locals())
         self.observation_dim = env.observation_space.low.size
         self.action_dim = env.action_space.low.size
@@ -194,17 +181,15 @@ class TdmPolicy(TanhMlpPolicy):
         self.tdm_normalizer = tdm_normalizer
 
     def forward(
-            self,
-            observations,
-            goals,
-            num_steps_left,
-            return_preactivations=False,
+        self,
+        observations,
+        goals,
+        num_steps_left,
+        return_preactivations=False,
     ):
         if self.tdm_normalizer is not None:
-            observations, _, goals, num_steps_left = (
-                self.tdm_normalizer.normalize_all(
-                    observations, None, goals, num_steps_left
-                )
+            observations, _, goals, num_steps_left = self.tdm_normalizer.normalize_all(
+                observations, None, goals, num_steps_left
             )
 
         flat_input = torch.cat((observations, goals, num_steps_left), dim=1)
@@ -220,4 +205,3 @@ class TdmPolicy(TanhMlpPolicy):
             tau_np[None],
         )
         return actions[0, :], {}
-

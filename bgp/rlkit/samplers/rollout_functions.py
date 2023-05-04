@@ -15,23 +15,22 @@ def create_rollout_function(rollout_function, **initial_kwargs):
             observation_key,
             desired_goal_key,
     """
+
     def wrapped_rollout_func(*args, **dynamic_kwargs):
-        combined_args = {
-            **initial_kwargs,
-            **dynamic_kwargs
-        }
+        combined_args = {**initial_kwargs, **dynamic_kwargs}
         return rollout_function(*args, **combined_args)
+
     return wrapped_rollout_func
 
 
 def multitask_rollout(
-        env,
-        agent,
-        max_path_length=np.inf,
-        animated=False,
-        observation_key='observation',
-        desired_goal_key='desired_goal',
-        get_action_kwargs=None,
+    env,
+    agent,
+    max_path_length=np.inf,
+    animated=False,
+    observation_key="observation",
+    desired_goal_key="desired_goal",
+    get_action_kwargs=None,
 ):
     if get_action_kwargs is None:
         get_action_kwargs = {}
@@ -142,12 +141,7 @@ def rollout(env, agent, max_path_length=np.inf, animated=False):
     if len(observations.shape) == 1:
         observations = np.expand_dims(observations, 1)
         next_o = np.array([next_o])
-    next_observations = np.vstack(
-        (
-            observations[1:, :],
-            np.expand_dims(next_o, 0)
-        )
-    )
+    next_observations = np.vstack((observations[1:, :], np.expand_dims(next_o, 0)))
     return dict(
         observations=observations,
         actions=actions,

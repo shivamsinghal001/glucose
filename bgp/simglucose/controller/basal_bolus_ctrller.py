@@ -7,49 +7,48 @@ import logging
 from collections import namedtuple
 
 logger = logging.getLogger(__name__)
-CONTROL_QUEST = '/source/dir/simglucose/params/Quest.csv'
-PATIENT_PARA_FILE = '/source/dir/simglucose/params/vpatient_params.csv'
-ParamTup = namedtuple('ParamTup', ['basal', 'cf', 'cr'])
+CONTROL_QUEST = "/source/dir/simglucose/params/Quest.csv"
+PATIENT_PARA_FILE = "/source/dir/simglucose/params/vpatient_params.csv"
+ParamTup = namedtuple("ParamTup", ["basal", "cf", "cr"])
+
 
 class BBController(Controller):
     def __init__(self, target=140):
         self.quest = pd.read_csv(CONTROL_QUEST)
-        self.patient_params = pd.read_csv(
-            PATIENT_PARA_FILE)
+        self.patient_params = pd.read_csv(PATIENT_PARA_FILE)
         self.target = target
 
     def policy(self, observation, reward, done, **kwargs):
-        sample_time = kwargs.get('sample_time', 1)
-        pname = kwargs.get('patient_name')
+        sample_time = kwargs.get("sample_time", 1)
+        pname = kwargs.get("patient_name")
 
-        meal = kwargs.get('meal')
+        meal = kwargs.get("meal")
 
-        action = self._bb_policy(
-            pname,
-            meal,
-            observation.CGM,
-            sample_time)
+        action = self._bb_policy(pname, meal, observation.CGM, sample_time)
         return action
 
     def _bb_policy(self, name, meal, glucose, env_sample_time):
         if any(self.quest.Name.str.match(name)):
             q = self.quest[self.quest.Name.str.match(name)]
-            params = self.patient_params[self.patient_params.Name.str.match(
-                name)]
+            params = self.patient_params[self.patient_params.Name.str.match(name)]
             u2ss = np.asscalar(params.u2ss.values)
             BW = np.asscalar(params.BW.values)
         else:
-            q = pd.DataFrame([['Average', 13.5, 23.52, 50, 30]],
-                             columns=['Name', 'CR', 'CF', 'TDI', 'Age'])
+            q = pd.DataFrame(
+                [["Average", 13.5, 23.52, 50, 30]],
+                columns=["Name", "CR", "CF", "TDI", "Age"],
+            )
             u2ss = 1.43
             BW = 57.0
 
         basal = u2ss * BW / 6000
         if meal > 0:
-            logger.info('Calculating bolus ...')
-            logger.debug('glucose = {}'.format(glucose))
-            bolus = np.asscalar(meal / q.CR.values + (glucose > 150)
-                                * (glucose - self.target) / q.CF.values)
+            logger.info("Calculating bolus ...")
+            logger.debug("glucose = {}".format(glucose))
+            bolus = np.asscalar(
+                meal / q.CR.values
+                + (glucose > 150) * (glucose - self.target) / q.CF.values
+            )
         else:
             bolus = 0
 
@@ -62,8 +61,20 @@ class BBController(Controller):
 
 
 class ManualBBController(Controller):
-    def __init__(self, target, cr, cf, basal, sample_rate=5, use_cf=True, use_bol=True, cooldown=0,
-                 corrected=True, use_low_lim=False, low_lim=70):
+    def __init__(
+        self,
+        target,
+        cr,
+        cf,
+        basal,
+        sample_rate=5,
+        use_cf=True,
+        use_bol=True,
+        cooldown=0,
+        corrected=True,
+        use_low_lim=False,
+        low_lim=70,
+    ):
         super().__init__(self)
         self.target = target
         self.orig_cr = self.cr = cr
@@ -84,8 +95,8 @@ class ManualBBController(Controller):
         self.basal += basal_incr
 
     def policy(self, observation, reward, done, **kwargs):
-        carbs = kwargs.get('carbs')
-        glucose = kwargs.get('glucose')
+        carbs = kwargs.get("carbs")
+        glucose = kwargs.get("glucose")
         action = self.manual_bb_policy(carbs, glucose)
         return action
 
@@ -95,7 +106,9 @@ class ManualBBController(Controller):
                 carb_correct = carbs / self.cr
             else:
                 # assuming carbs are already multiplied by sampling rate
-                carb_correct = (carbs/self.sample_rate) / self.cr  # TODO: not sure about this
+                carb_correct = (
+                    carbs / self.sample_rate
+                ) / self.cr  # TODO: not sure about this
             hyper_correct = (glucose > self.target) * (glucose - self.target) / self.cf
             hypo_correct = (glucose < self.low_lim) * (self.low_lim - glucose) / self.cf
             bolus = 0
@@ -115,7 +128,12 @@ class ManualBBController(Controller):
             hypo_correct = 0
         self.last_cf += self.sample_rate
         if log:
-            return Action(basal=self.basal, bolus=bolus), hyper_correct, hypo_correct, carb_correct
+            return (
+                Action(basal=self.basal, bolus=bolus),
+                hyper_correct,
+                hypo_correct,
+                carb_correct,
+            )
         else:
             return Action(basal=self.basal, bolus=bolus)
 
@@ -132,13 +150,14 @@ class ManualBBController(Controller):
         self.basal = self.orig_basal
         self.last_cf = np.inf
 
+
 class MyController(Controller):
     def __init__(self, init_state):
         self.init_state = init_state
         self.state = init_state
 
     def policy(self, observation, reward, done, **info):
-        '''
+        """
         Every controller must have this implementation!
         ----
         Inputs:
@@ -154,13 +173,13 @@ class MyController(Controller):
         Output:
         action - a namedtuple defined at the beginning of this file. The
                  controller action contains two entries: basal, bolus
-        '''
+        """
         self.state = observation
         action = Action(basal=0, bolus=0)
         return action
 
     def reset(self):
-        '''
+        """
         Reset the controller state to inital state, must be implemented
-        '''
+        """
         self.state = self.init_state

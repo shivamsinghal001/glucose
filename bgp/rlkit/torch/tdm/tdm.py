@@ -18,22 +18,19 @@ from bgp.rlkit.torch.torch_rl_algorithm import np_to_pytorch_batch
 
 class TemporalDifferenceModel(DDPG):
     def __init__(
-            self,
-            env,
-            qf,
-            exploration_policy,
-
-            policy=None,
-            replay_buffer=None,
-
-            max_tau=10,
-            vectorized=True,
-            goal_weights=None,
-            tdm_normalizer: TdmNormalizer=None,
-            num_pretrain_paths=0,
-            normalize_distance=False,
-
-            **ddpg_kwargs
+        self,
+        env,
+        qf,
+        exploration_policy,
+        policy=None,
+        replay_buffer=None,
+        max_tau=10,
+        vectorized=True,
+        goal_weights=None,
+        tdm_normalizer: TdmNormalizer = None,
+        num_pretrain_paths=0,
+        normalize_distance=False,
+        **ddpg_kwargs
     ):
         """
         :param max_tau: Maximum tau (planning horizon) to train with.
@@ -79,33 +76,34 @@ class TemporalDifferenceModel(DDPG):
 
     def _do_training(self):
         batch = self.get_batch()
-        rewards = batch['rewards']
-        terminals = batch['terminals']
-        obs = batch['observations']
-        actions = batch['actions']
-        next_obs = batch['next_observations']
-        goals = batch['goals']
-        num_steps_left = batch['num_steps_left']
+        rewards = batch["rewards"]
+        terminals = batch["terminals"]
+        obs = batch["observations"]
+        actions = batch["actions"]
+        next_obs = batch["next_observations"]
+        goals = batch["goals"]
+        num_steps_left = batch["num_steps_left"]
 
         """
         Policy operations.
         """
         policy_actions, pre_tanh_value = self.policy(
-            obs, goals, num_steps_left, return_preactivations=True,
+            obs,
+            goals,
+            num_steps_left,
+            return_preactivations=True,
         )
-        pre_activation_policy_loss = (
-            (pre_tanh_value**2).sum(dim=1).mean()
-        )
+        pre_activation_policy_loss = (pre_tanh_value**2).sum(dim=1).mean()
         q_output = self.qf(
             observations=obs,
             actions=policy_actions,
             num_steps_left=num_steps_left,
             goals=goals,
         )
-        raw_policy_loss = - q_output.mean()
+        raw_policy_loss = -q_output.mean()
         policy_loss = (
-                raw_policy_loss +
-                pre_activation_policy_loss * self.policy_pre_activation_weight
+            raw_policy_loss
+            + pre_activation_policy_loss * self.policy_pre_activation_weight
         )
 
         """
@@ -114,7 +112,7 @@ class TemporalDifferenceModel(DDPG):
         next_actions = self.target_policy(
             observations=next_obs,
             goals=goals,
-            num_steps_left=num_steps_left-1,
+            num_steps_left=num_steps_left - 1,
         )
         # speed up computation by not backpropping these gradients
         next_actions.detach()
@@ -122,9 +120,9 @@ class TemporalDifferenceModel(DDPG):
             observations=next_obs,
             actions=next_actions,
             goals=goals,
-            num_steps_left=num_steps_left-1,
+            num_steps_left=num_steps_left - 1,
         )
-        q_target = rewards + (1. - terminals) * self.discount * target_q_values
+        q_target = rewards + (1.0 - terminals) * self.discount * target_q_values
         q_target = q_target.detach()
         q_pred = self.qf(
             observations=obs,
@@ -133,12 +131,8 @@ class TemporalDifferenceModel(DDPG):
             num_steps_left=num_steps_left,
         )
         if self.tdm_normalizer:
-            q_pred = self.tdm_normalizer.distance_normalizer.normalize_scale(
-                q_pred
-            )
-            q_target = self.tdm_normalizer.distance_normalizer.normalize_scale(
-                q_target
-            )
+            q_pred = self.tdm_normalizer.distance_normalizer.normalize_scale(q_pred)
+            q_target = self.tdm_normalizer.distance_normalizer.normalize_scale(q_target)
         bellman_errors = (q_pred - q_target) ** 2
         qf_loss = self.qf_criterion(q_pred, q_target)
 
@@ -160,33 +154,39 @@ class TemporalDifferenceModel(DDPG):
         """
         if self.need_to_update_eval_statistics:
             self.need_to_update_eval_statistics = False
-            self.eval_statistics['QF Loss'] = np.mean(ptu.get_numpy(qf_loss))
-            self.eval_statistics['Policy Loss'] = np.mean(ptu.get_numpy(
-                policy_loss
-            ))
-            self.eval_statistics['Raw Policy Loss'] = np.mean(ptu.get_numpy(
-                raw_policy_loss
-            ))
-            self.eval_statistics['Preactivation Policy Loss'] = (
-                    self.eval_statistics['Policy Loss'] -
-                    self.eval_statistics['Raw Policy Loss']
+            self.eval_statistics["QF Loss"] = np.mean(ptu.get_numpy(qf_loss))
+            self.eval_statistics["Policy Loss"] = np.mean(ptu.get_numpy(policy_loss))
+            self.eval_statistics["Raw Policy Loss"] = np.mean(
+                ptu.get_numpy(raw_policy_loss)
             )
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Q Predictions',
-                ptu.get_numpy(q_pred),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Q Targets',
-                ptu.get_numpy(q_target),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Bellman Errors',
-                ptu.get_numpy(bellman_errors),
-            ))
-            self.eval_statistics.update(create_stats_ordered_dict(
-                'Policy Action',
-                ptu.get_numpy(policy_actions),
-            ))
+            self.eval_statistics["Preactivation Policy Loss"] = (
+                self.eval_statistics["Policy Loss"]
+                - self.eval_statistics["Raw Policy Loss"]
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Q Predictions",
+                    ptu.get_numpy(q_pred),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Q Targets",
+                    ptu.get_numpy(q_target),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Bellman Errors",
+                    ptu.get_numpy(bellman_errors),
+                )
+            )
+            self.eval_statistics.update(
+                create_stats_ordered_dict(
+                    "Policy Action",
+                    ptu.get_numpy(policy_actions),
+                )
+            )
 
     def get_batch(self):
         batch = self.replay_buffer.random_batch(self.batch_size)
@@ -194,17 +194,13 @@ class TemporalDifferenceModel(DDPG):
         """
         Update the goal states/rewards
         """
-        num_steps_left = np.random.randint(
-            0, self.max_tau + 1, (self.batch_size, 1)
-        )
-        obs = batch['observations']
-        actions = batch['actions']
-        next_obs = batch['next_observations']
-        goals = batch['resampled_goals']
-        rewards = self._compute_scaled_rewards_np(
-            batch, obs, actions, next_obs, goals
-        )
-        terminals = batch['terminals']
+        num_steps_left = np.random.randint(0, self.max_tau + 1, (self.batch_size, 1))
+        obs = batch["observations"]
+        actions = batch["actions"]
+        next_obs = batch["next_observations"]
+        goals = batch["resampled_goals"]
+        rewards = self._compute_scaled_rewards_np(batch, obs, actions, next_obs, goals)
+        terminals = batch["terminals"]
 
         terminals = 1 - (1 - terminals) * (num_steps_left != 0)
         rewards = rewards * terminals
@@ -212,13 +208,13 @@ class TemporalDifferenceModel(DDPG):
         """
         Update the batch
         """
-        batch['rewards'] = rewards
-        batch['terminals'] = terminals
-        batch['actions'] = actions
-        batch['num_steps_left'] = num_steps_left
-        batch['goals'] = goals
-        batch['observations'] = obs
-        batch['next_observations'] = next_obs
+        batch["rewards"] = rewards
+        batch["terminals"] = terminals
+        batch["actions"] = actions
+        batch["num_steps_left"] = num_steps_left
+        batch["goals"] = goals
+        batch["observations"] = obs
+        batch["next_observations"] = next_obs
 
         return np_to_pytorch_batch(batch)
 
@@ -262,14 +258,14 @@ class TemporalDifferenceModel(DDPG):
         return self.training_env.reset()
 
     def _handle_step(
-            self,
-            observation,
-            action,
-            reward,
-            next_observation,
-            terminal,
-            agent_info,
-            env_info,
+        self,
+        observation,
+        action,
+        reward,
+        next_observation,
+        terminal,
+        agent_info,
+        env_info,
     ):
         self._current_path_builder.add_all(
             observations=observation,
@@ -337,12 +333,12 @@ class TemporalDifferenceModel(DDPG):
         ob_std = np.std(obs, axis=0)
         ac_mean = np.mean(actions, axis=0)
         ac_std = np.std(actions, axis=0)
-        new_goals = np.vstack([
-            self._sample_goal_for_rollout()
-            for _ in range(
-                self.num_pretrain_paths * self.max_path_length
-            )
-        ])
+        new_goals = np.vstack(
+            [
+                self._sample_goal_for_rollout()
+                for _ in range(self.num_pretrain_paths * self.max_path_length)
+            ]
+        )
         goal_mean = np.mean(new_goals, axis=0)
         goal_std = np.std(new_goals, axis=0)
         distance_mean = np.mean(neg_distances, axis=0)
@@ -360,9 +356,5 @@ class TemporalDifferenceModel(DDPG):
                 self.tdm_normalizer.distance_normalizer.set_std(distance_std)
 
         if self.qf.tdm_normalizer is not None:
-            self.target_qf.tdm_normalizer.copy_stats(
-                self.qf.tdm_normalizer
-            )
-            self.target_policy.tdm_normalizer.copy_stats(
-                self.qf.tdm_normalizer
-            )
+            self.target_qf.tdm_normalizer.copy_stats(self.qf.tdm_normalizer)
+            self.target_policy.tdm_normalizer.copy_stats(self.qf.tdm_normalizer)

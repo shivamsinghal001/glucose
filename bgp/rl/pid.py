@@ -38,16 +38,21 @@ class PID:
 
 
 def pid_test(pid, env, n_days, seed, full_save=False):
-    env.seeds['sensor'] = seed
-    env.seeds['scenario'] = seed
+    env.seeds["sensor"] = seed
+    env.seeds["scenario"] = seed
     env.reset()
     full_patient_state = []
-    for i in tqdm(range(n_days*288)):
+    for i in tqdm(range(n_days * 288)):
         act = pid.step(env.env.CGM_hist[-1])
         state, reward, done, info = env.step(action=act)
-        full_patient_state.append(info['patient_state'])
+        full_patient_state.append(info["patient_state"])
     full_patient_state = np.stack(full_patient_state)
     if full_save:
         return env.env.show_history(), full_patient_state
     else:
-        return {'hist': env.env.show_history()[288:], 'kp': pid.kp, 'ki': pid.ki, 'kd': pid.kd}
+        return {
+            "hist": env.env.show_history()[288:],
+            "kp": pid.kp,
+            "ki": pid.ki,
+            "kd": pid.kd,
+        }

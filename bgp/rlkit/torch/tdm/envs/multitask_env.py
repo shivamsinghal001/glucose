@@ -72,6 +72,7 @@ class MultitaskEnv(object, metaclass=abc.ABCMeta):
     """
     Helper functions you probably don't need to override.
     """
+
     def sample_goal_for_rollout(self):
         """
         These goals are fed to a policy when the policy wants to actually
@@ -88,27 +89,22 @@ class MultitaskEnv(object, metaclass=abc.ABCMeta):
         This observation should NOT include the goal.
         """
         if isinstance(ob, np.ndarray):
-            return self.convert_obs_to_goals(
-                np.expand_dims(ob, 0)
-            )[0]
+            return self.convert_obs_to_goals(np.expand_dims(ob, 0))[0]
         else:
-            return self.convert_obs_to_goals_pytorch(
-                ob.unsqueeze(0)
-            )[0]
+            return self.convert_obs_to_goals_pytorch(ob.unsqueeze(0))[0]
 
     def compute_reward(self, ob, action, next_ob, goal):
-        return self.compute_rewards(
-            ob[None], action[None], next_ob[None], goal[None]
-        )
+        return self.compute_rewards(ob[None], action[None], next_ob[None], goal[None])
 
     """
     Check out these default functions below! You may want to override them.
     """
+
     def set_goal(self, goal):
         self.multitask_goal = goal
 
     def compute_rewards(self, obs, actions, next_obs, goals):
-        return - np.linalg.norm(
+        return -np.linalg.norm(
             self.convert_obs_to_goals(next_obs) - goals,
             axis=1,
             keepdims=True,
@@ -137,15 +133,15 @@ class MultitaskEnv(object, metaclass=abc.ABCMeta):
             return
         final_differences = []
         for path, goals in zip(paths, list_of_goals):
-            reached = self.convert_ob_to_goal(path['next_observations'][-1])
+            reached = self.convert_ob_to_goal(path["next_observations"][-1])
             final_differences.append(reached - goals[-1])
 
         statistics = OrderedDict()
 
         goals = np.vstack(list_of_goals)
-        observations = np.vstack([path['observations'] for path in paths])
-        next_observations = np.vstack([path['next_observations'] for path in paths])
-        actions = np.vstack([path['actions'] for path in paths])
+        observations = np.vstack([path["observations"] for path in paths])
+        next_observations = np.vstack([path["next_observations"] for path in paths])
+        actions = np.vstack([path["actions"] for path in paths])
         for order in [1, 2]:
             final_distances = np.linalg.norm(
                 np.array(final_differences),
@@ -157,25 +153,32 @@ class MultitaskEnv(object, metaclass=abc.ABCMeta):
                 axis=1,
                 ord=order,
             )
-            statistics.update(create_stats_ordered_dict(
-                'Multitask L{} distance to goal'.format(order),
-                goal_distances,
-                always_show_all_stats=True,
-            ))
-            statistics.update(create_stats_ordered_dict(
-                'Multitask Final L{} distance to goal'.format(order),
-                final_distances,
-                always_show_all_stats=True,
-            ))
+            statistics.update(
+                create_stats_ordered_dict(
+                    "Multitask L{} distance to goal".format(order),
+                    goal_distances,
+                    always_show_all_stats=True,
+                )
+            )
+            statistics.update(
+                create_stats_ordered_dict(
+                    "Multitask Final L{} distance to goal".format(order),
+                    final_distances,
+                    always_show_all_stats=True,
+                )
+            )
         rewards = self.compute_rewards(
             observations,
             actions,
             next_observations,
             goals,
         )
-        statistics.update(create_stats_ordered_dict(
-            'Multitask Env Rewards', rewards,
-        ))
+        statistics.update(
+            create_stats_ordered_dict(
+                "Multitask Env Rewards",
+                rewards,
+            )
+        )
         for key, value in statistics.items():
             logger.record_tabular(key, value)
 
@@ -183,6 +186,7 @@ class MultitaskEnv(object, metaclass=abc.ABCMeta):
     Optional functions to implement, since most of my code doesn't use these
     any more.
     """
+
     def cost_fn(self, states, actions, next_states):
         """
         This is added for model-based code. This is COST not reward.
@@ -214,18 +218,15 @@ def _extract_list_of_goals(paths):
     if len(paths) == 0:
         return None
 
-    if 'goals' in paths[0]:
-        return [path['goals'] for path in paths]
+    if "goals" in paths[0]:
+        return [path["goals"] for path in paths]
 
-    if 'env_infos' in paths[0]:
-        env_infos = paths[0]['env_infos']
+    if "env_infos" in paths[0]:
+        env_infos = paths[0]["env_infos"]
         if isinstance(env_infos, dict):  # rllab style paths
-            return [path['env_infos']['goal'] for path in paths]
-        elif 'goal' in env_infos[0]:
-            return [
-                [info['goal'] for info in path['env_infos']]
-                for path in paths
-            ]
+            return [path["env_infos"]["goal"] for path in paths]
+        elif "goal" in env_infos[0]:
+            return [[info["goal"] for info in path["env_infos"]] for path in paths]
     return None
 
 
@@ -234,10 +235,11 @@ class MultitaskToFlatEnv(ProxyEnv, Serializable):
     This environment tasks a multitask environment and appends the goal to
     the state.
     """
+
     def __init__(
-            self,
-            env: MultitaskEnv,
-            give_goal_difference=False,
+        self,
+        env: MultitaskEnv,
+        give_goal_difference=False,
     ):
         # self._wrapped_env needs to be called first because
         # Serializable.quick_init calls getattr, on this class. And the
@@ -254,15 +256,13 @@ class MultitaskToFlatEnv(ProxyEnv, Serializable):
         ProxyEnv.__init__(self, env)
 
         wrapped_low = self.observation_space.low
-        low = np.hstack((
-            wrapped_low,
-            min(wrapped_low) * np.ones(self._wrapped_env.goal_dim)
-        ))
+        low = np.hstack(
+            (wrapped_low, min(wrapped_low) * np.ones(self._wrapped_env.goal_dim))
+        )
         wrapped_high = self.observation_space.low
-        high = np.hstack((
-            wrapped_high,
-            max(wrapped_high) * np.ones(self._wrapped_env.goal_dim)
-        ))
+        high = np.hstack(
+            (wrapped_high, max(wrapped_high) * np.ones(self._wrapped_env.goal_dim))
+        )
         self.observation_space = Box(low, high)
 
     def step(self, action):
@@ -278,12 +278,12 @@ class MultitaskToFlatEnv(ProxyEnv, Serializable):
 
     def log_diagnostics(self, paths, logger=default_logger):
         for path in paths:
-            path['observations'] = (
-                path['observations'][:, :-self._wrapped_env.goal_dim]
-            )
-            path['next_observations'] = (
-                path['next_observations'][:, :-self._wrapped_env.goal_dim]
-            )
+            path["observations"] = path["observations"][
+                :, : -self._wrapped_env.goal_dim
+            ]
+            path["next_observations"] = path["next_observations"][
+                :, : -self._wrapped_env.goal_dim
+            ]
         return self._wrapped_env.log_diagnostics(paths, logger=default_logger)
 
     def _add_goal_to_observation(self, ob):
@@ -301,8 +301,8 @@ class MultitaskToFlatEnv(ProxyEnv, Serializable):
             states = states[None]
             actions = actions[None]
             next_states = next_states[None]
-        unwrapped_states = states[:, :self._wrapped_obs_dim]
-        unwrapped_next_states = next_states[:, :self._wrapped_obs_dim]
+        unwrapped_states = states[:, : self._wrapped_obs_dim]
+        unwrapped_next_states = next_states[:, : self._wrapped_obs_dim]
         return self._wrapped_env.cost_fn(
             unwrapped_states,
             actions,
@@ -315,6 +315,7 @@ class MultitaskEnvToSilentMultitaskEnv(ProxyEnv, Serializable):
     Normally, reset() on a multitask env doesn't change the goal.
     Now, reset will silently change the goal.
     """
+
     def reset(self):
         self._wrapped_env.set_goal(self._wrapped_env.sample_goal_for_rollout())
         return super().reset()

@@ -25,23 +25,40 @@ except ImportError:
         return _Step(observation, reward, done, kwargs)
 
 
-Observation = namedtuple('Observation', ['CGM'])
+Observation = namedtuple("Observation", ["CGM"])
 logger = logging.getLogger(__name__)
 
 
 class T1DSimEnv(object):
     # TODO: in process of removing risk_diff default and moving to platform
-    def __init__(self, patient, sensor, pump, scenario, sample_time=None, model=None, model_device=None, source_dir=None):
+    def __init__(
+        self,
+        patient,
+        sensor,
+        pump,
+        scenario,
+        sample_time=None,
+        model=None,
+        model_device=None,
+        source_dir=None,
+    ):
         self.patient = patient
         self.state = self.patient.state  # caching for model usage
         # TODO: make more general
         with resources.path("bgp.simglucose", "__init__.py") as data_path:
             data_path = data_path.parent
-            norm_param_file = data_path / 'params' / 'adult_001_std_params.pkl'
+            norm_param_file = data_path / "params" / "adult_001_std_params.pkl"
         norm_params_full = joblib.load(norm_param_file)
-        new_mask = [True for _ in range(13)] + [True, False, False, True]  # throwing out BG and CGM
-        norm_params_new = {'mu': norm_params_full['mu'][new_mask],
-                           'std': norm_params_full['sigma'][new_mask]}
+        new_mask = [True for _ in range(13)] + [
+            True,
+            False,
+            False,
+            True,
+        ]  # throwing out BG and CGM
+        norm_params_new = {
+            "mu": norm_params_full["mu"][new_mask],
+            "std": norm_params_full["sigma"][new_mask],
+        }
         self.norm_params = norm_params_new
         self.sensor = sensor
         self.pump = pump
@@ -56,7 +73,6 @@ class T1DSimEnv(object):
         self.BG_hist = [0]
         self.insulin_hist = [0]
         self._reset()
-
 
     @property
     def time(self):
@@ -84,9 +100,9 @@ class T1DSimEnv(object):
         return CHO, insulin, BG, CGM
 
     def step(self, action, reward_fun, cho, true_reward_fn=None, proxy_reward_fn=None):
-        '''
+        """
         action is a namedtuple with keys: basal, bolus
-        '''
+        """
         CHO = 0.0
         insulin = 0.0
         BG = 0.0
@@ -107,19 +123,25 @@ class T1DSimEnv(object):
                 self.patient._t += 1  # copying mini-step of 1 minute
             # Make state
             state = np.concatenate([self.state, [CHO, insulin]])
-            norm_state = ((state-self.norm_params['mu'])/self.norm_params['std']).reshape(1, -1)
+            norm_state = (
+                (state - self.norm_params["mu"]) / self.norm_params["std"]
+            ).reshape(1, -1)
             tensor_state = torch.from_numpy(norm_state).float().to(self.model_device)
             # feed through model
             with torch.no_grad():
                 next_state_tensor = self.model(tensor_state)
-                if self.model_device != 'cpu':
+                if self.model_device != "cpu":
                     next_state_tensor = next_state_tensor.cpu()
                 next_state_norm = next_state_tensor.numpy().reshape(-1)
-            next_state = (next_state_norm*self.norm_params['std'][:13])+self.norm_params['mu'][:13]
+            next_state = (
+                next_state_norm * self.norm_params["std"][:13]
+            ) + self.norm_params["mu"][:13]
             self.state = next_state
             # calculate BG and CGM
-            BG = self.state[12]/self.patient._params.Vg
-            self.patient._state[12] = self.state[12]  # getting observation correct for CGM measurement
+            BG = self.state[12] / self.patient._params.Vg
+            self.patient._state[12] = self.state[
+                12
+            ]  # getting observation correct for CGM measurement
             CGM = self.sensor.measure(self.patient)
         else:
             for _ in range(int(self.sample_time)):
@@ -150,17 +172,29 @@ class T1DSimEnv(object):
         # Compute reward, and decide whether game is over
         window_size = int(60 / self.sample_time)
         BG_last_hour = self.CGM_hist[-window_size:]
-        reward = reward_fun(bg_hist=self.BG_hist, cgm_hist=self.CGM_hist, insulin_hist=self.insulin_hist,
-                            risk_hist=self.risk_hist)
+        reward = reward_fun(
+            bg_hist=self.BG_hist,
+            cgm_hist=self.CGM_hist,
+            insulin_hist=self.insulin_hist,
+            risk_hist=self.risk_hist,
+        )
         true_rew = 0
         if true_reward_fn is not None:
-            true_rew = true_reward_fn(bg_hist=self.BG_hist, cgm_hist=self.CGM_hist, insulin_hist=self.insulin_hist,
-                            risk_hist=self.risk_hist)
+            true_rew = true_reward_fn(
+                bg_hist=self.BG_hist,
+                cgm_hist=self.CGM_hist,
+                insulin_hist=self.insulin_hist,
+                risk_hist=self.risk_hist,
+            )
 
         proxy_rew = 0
         if proxy_reward_fn is not None:
-            proxy_rew = proxy_reward_fn(bg_hist=self.BG_hist, insulin_hist=self.insulin_hist, cgm_hist=self.CGM_hist,
-                            risk_hist=self.risk_hist)
+            proxy_rew = proxy_reward_fn(
+                bg_hist=self.BG_hist,
+                insulin_hist=self.insulin_hist,
+                cgm_hist=self.CGM_hist,
+                risk_hist=self.risk_hist,
+            )
 
         self.rew_hist.append(reward)
         self.true_rew_hist.append(true_rew)
@@ -190,7 +224,7 @@ class T1DSimEnv(object):
             self.sample_time = self.perm_sample_time
         self.viewer = None
 
-        self.last_BG_hist = self.BG_hist 
+        self.last_BG_hist = self.BG_hist
         self.last_insulin_hist = self.insulin_hist
 
         BG = self.patient.observation.Gsub
@@ -234,7 +268,8 @@ class T1DSimEnv(object):
             sample_time=self.sample_time,
             patient_name=self.patient.name,
             meal=0,
-            patient_state=self.patient.state)
+            patient_state=self.patient.state,
+        )
 
     def render(self, close=False):
         if close:
@@ -250,17 +285,17 @@ class T1DSimEnv(object):
 
     def show_history(self):
         df = pd.DataFrame()
-        df['Time'] = pd.Series(self.time_hist)
-        df['BG'] = pd.Series(self.BG_hist)
-        df['CGM'] = pd.Series(self.CGM_hist)
-        df['CHO'] = pd.Series(self.CHO_hist)
-        df['insulin'] = pd.Series(self.insulin_hist)
-        df['LBGI'] = pd.Series(self.LBGI_hist)
-        df['HBGI'] = pd.Series(self.HBGI_hist)
-        df['Risk'] = pd.Series(self.risk_hist)
-        df['Magni_Risk'] = pd.Series(self.magni_risk_hist)
-        df['Reward'] = pd.Series(self.rew_hist)
-        df['True reward'] = pd.Series(self.true_rew_hist)
+        df["Time"] = pd.Series(self.time_hist)
+        df["BG"] = pd.Series(self.BG_hist)
+        df["CGM"] = pd.Series(self.CGM_hist)
+        df["CHO"] = pd.Series(self.CHO_hist)
+        df["insulin"] = pd.Series(self.insulin_hist)
+        df["LBGI"] = pd.Series(self.LBGI_hist)
+        df["HBGI"] = pd.Series(self.HBGI_hist)
+        df["Risk"] = pd.Series(self.risk_hist)
+        df["Magni_Risk"] = pd.Series(self.magni_risk_hist)
+        df["Reward"] = pd.Series(self.rew_hist)
+        df["True reward"] = pd.Series(self.true_rew_hist)
         df["Proxy reward"] = pd.Series(self.proxy_rew_hist)
-        df = df.set_index('Time')
+        df = df.set_index("Time")
         return df

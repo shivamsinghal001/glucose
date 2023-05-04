@@ -39,40 +39,38 @@ class GoalXVelHalfCheetah(HalfCheetahEnv, MultitaskEnv, Serializable):
         xvel = ob[8]
         desired_xvel = self.target_x_vel
         xvel_error = np.linalg.norm(xvel - desired_xvel)
-        reward = - xvel_error
-        info_dict['xvel'] = xvel
-        info_dict['desired_xvel'] = desired_xvel
-        info_dict['xvel_error'] = xvel_error
+        reward = -xvel_error
+        info_dict["xvel"] = xvel
+        info_dict["desired_xvel"] = desired_xvel
+        info_dict["xvel_error"] = xvel_error
         return ob, reward, done, info_dict
 
     def log_diagnostics(self, paths, logger=default_logger):
         super().log_diagnostics(paths)
         MultitaskEnv.log_diagnostics(self, paths)
-        xvels = get_stat_in_paths(
-            paths, 'env_infos', 'xvel'
-        )
-        desired_xvels = get_stat_in_paths(
-            paths, 'env_infos', 'desired_xvel'
-        )
-        xvel_errors = get_stat_in_paths(
-            paths, 'env_infos', 'xvel_error'
-        )
+        xvels = get_stat_in_paths(paths, "env_infos", "xvel")
+        desired_xvels = get_stat_in_paths(paths, "env_infos", "desired_xvel")
+        xvel_errors = get_stat_in_paths(paths, "env_infos", "xvel_error")
 
         statistics = OrderedDict()
         for stat, name in [
-            (xvels, 'xvels'),
-            (desired_xvels, 'desired xvels'),
-            (xvel_errors, 'xvel errors'),
+            (xvels, "xvels"),
+            (desired_xvels, "desired xvels"),
+            (xvel_errors, "xvel errors"),
         ]:
-            statistics.update(create_stats_ordered_dict(
-                '{}'.format(name),
-                stat,
-                always_show_all_stats=True,
-            ))
-            statistics.update(create_stats_ordered_dict(
-                'Final {}'.format(name),
-                [s[-1] for s in stat],
-                always_show_all_stats=True,
-            ))
+            statistics.update(
+                create_stats_ordered_dict(
+                    "{}".format(name),
+                    stat,
+                    always_show_all_stats=True,
+                )
+            )
+            statistics.update(
+                create_stats_ordered_dict(
+                    "Final {}".format(name),
+                    [s[-1] for s in stat],
+                    always_show_all_stats=True,
+                )
+            )
         for key, value in statistics.items():
             logger.record_tabular(key, value)

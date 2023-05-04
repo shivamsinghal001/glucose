@@ -18,32 +18,32 @@ import wandb
 
 class RLAlgorithm(metaclass=abc.ABCMeta):
     def __init__(
-            self,
-            env,
-            exploration_policy: ExplorationPolicy,
-            training_env=None,
-            num_epochs=100,
-            num_steps_per_epoch=10000,
-            num_steps_per_eval=1000,
-            num_updates_per_env_step=1,
-            num_updates_per_epoch=None,
-            batch_size=1024,
-            max_path_length=1000,
-            discount=0.99,
-            replay_buffer_size=1000000,
-            reward_scale=1,
-            min_num_steps_before_training=None,
-            render=False,
-            save_replay_buffer=False,
-            save_algorithm=False,
-            save_environment=True,
-            save_optim=False,
-            eval_sampler=None,
-            eval_policy=None,
-            replay_buffer=None,
-            collection_mode='online',
-            device='cpu',
-            validation_seed_offset=1000000,
+        self,
+        env,
+        exploration_policy: ExplorationPolicy,
+        training_env=None,
+        num_epochs=100,
+        num_steps_per_epoch=10000,
+        num_steps_per_eval=1000,
+        num_updates_per_env_step=1,
+        num_updates_per_epoch=None,
+        batch_size=1024,
+        max_path_length=1000,
+        discount=0.99,
+        replay_buffer_size=1000000,
+        reward_scale=1,
+        min_num_steps_before_training=None,
+        render=False,
+        save_replay_buffer=False,
+        save_algorithm=False,
+        save_environment=True,
+        save_optim=False,
+        eval_sampler=None,
+        eval_policy=None,
+        replay_buffer=None,
+        collection_mode="online",
+        device="cpu",
+        validation_seed_offset=1000000,
     ):
         """
         Base class for RL Algorithms
@@ -75,8 +75,8 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
          - 'online': Train after every step taken in the environment.
          - 'batch': Train after every epoch.
         """
-        assert collection_mode in ['online', 'batch']
-        if collection_mode == 'batch':
+        assert collection_mode in ["online", "batch"]
+        if collection_mode == "batch":
             assert num_updates_per_epoch is not None
 
         self.training_env = training_env or pickle.loads(pickle.dumps(env))
@@ -84,7 +84,7 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self.num_epochs = num_epochs
         self.num_env_steps_per_epoch = num_steps_per_epoch
         self.num_steps_per_eval = num_steps_per_eval
-        if collection_mode == 'online':
+        if collection_mode == "online":
             self.num_updates_per_train_call = num_updates_per_env_step
         else:
             self.num_updates_per_train_call = num_updates_per_epoch
@@ -119,7 +119,9 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self.action_space = env.action_space
         self.obs_space = env.observation_space
         self.env = env
-        self.env.increment_seed(validation_seed_offset)  # This is a pretty big assumption
+        self.env.increment_seed(
+            validation_seed_offset
+        )  # This is a pretty big assumption
         if replay_buffer is None:
             replay_buffer = EnvReplayBuffer(
                 self.replay_buffer_size,
@@ -144,21 +146,19 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self.pretrain()
         if start_epoch == 0:
             params = self.get_epoch_snapshot(-1)
-            #logger.save_itr_params(-1, params)
+            # logger.save_itr_params(-1, params)
         self.training_mode(False)
         self._n_env_steps_total = start_epoch * self.num_env_steps_per_epoch
         gt.reset()
         gt.set_def_unique(False)
-        if self.collection_mode == 'online':
-            print('online')
+        if self.collection_mode == "online":
+            print("online")
             self.train_online(start_epoch=start_epoch)
-        elif self.collection_mode == 'batch':
-            print('batch')
+        elif self.collection_mode == "batch":
+            print("batch")
             self.train_batch(start_epoch=start_epoch)
         else:
-            raise TypeError("Invalid collection_mode: {}".format(
-                self.collection_mode
-            ))
+            raise TypeError("Invalid collection_mode: {}".format(self.collection_mode))
 
     def pretrain(self):
         pass
@@ -167,29 +167,31 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self._current_path_builder = PathBuilder()
         wandb.init(project="value-learning", group="glucose", entity="aypan17")
         for epoch in gt.timed_for(
-                range(start_epoch, self.num_epochs),
-                save_itrs=True,
+            range(start_epoch, self.num_epochs),
+            save_itrs=True,
         ):
             self._start_epoch(epoch)
             set_to_train_mode(self.training_env)
-            observation = self._start_new_rollout()  # This resets the environment, new env each batch...
+            observation = (
+                self._start_new_rollout()
+            )  # This resets the environment, new env each batch...
             for _ in tqdm(range(self.num_env_steps_per_epoch)):
                 observation = self._take_step_in_env(observation)
-                gt.stamp('sample')
+                gt.stamp("sample")
 
                 self._try_to_train()
-                gt.stamp('train')
+                gt.stamp("train")
 
             set_to_eval_mode(self.env)
             self._try_to_eval(epoch)
-            gt.stamp('eval')
+            gt.stamp("eval")
             self._end_epoch(epoch)
 
     def train_batch(self, start_epoch):
         self._current_path_builder = PathBuilder()
         for epoch in gt.timed_for(
-                range(start_epoch, self.num_epochs),
-                save_itrs=True,
+            range(start_epoch, self.num_epochs),
+            save_itrs=True,
         ):
             self._start_epoch(epoch)
             set_to_train_mode(self.training_env)
@@ -198,14 +200,14 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
             # parallelize data collection, this would be the place to do it.
             for _ in range(self.num_env_steps_per_epoch):
                 observation = self._take_step_in_env(observation)
-            gt.stamp('sample')
+            gt.stamp("sample")
 
             self._try_to_train()
-            gt.stamp('train')
+            gt.stamp("train")
 
             set_to_eval_mode(self.env)
             self._try_to_eval(epoch)
-            gt.stamp('eval')
+            gt.stamp("eval")
             self._end_epoch(epoch)
 
     def _take_step_in_env(self, observation):
@@ -214,9 +216,7 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         )
         if self.render:
             self.training_env.render()
-        next_ob, raw_reward, terminal, env_info = (
-            self.training_env.step(action)
-        )
+        next_ob, raw_reward, terminal, env_info = self.training_env.step(action)
         self._n_env_steps_total += 1
         reward = raw_reward * self.reward_scale
         terminal = np.array([terminal])
@@ -246,17 +246,17 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
             self.training_mode(False)
 
     def _try_to_eval(self, epoch, eval_paths=None):
-        #logger.save_extra_data(self.get_extra_data_to_save(epoch))
+        # logger.save_extra_data(self.get_extra_data_to_save(epoch))
         if self._can_evaluate():
             self.evaluate(epoch, eval_paths=eval_paths)
 
             params = self.get_epoch_snapshot(epoch)
-            #logger.save_itr_params(epoch, params)
+            # logger.save_itr_params(epoch, params)
             table_keys = logger.get_table_key_set()
             if self._old_table_keys is not None:
-                assert table_keys == self._old_table_keys, (
-                    "Table keys cannot change from iteration to iteration."
-                )
+                assert (
+                    table_keys == self._old_table_keys
+                ), "Table keys cannot change from iteration to iteration."
             self._old_table_keys = table_keys
 
             logger.record_tabular(
@@ -273,20 +273,20 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
             )
 
             times_itrs = gt.get_times().stamps.itrs
-            train_time = times_itrs['train'][-1]
-            sample_time = times_itrs['sample'][-1]
+            train_time = times_itrs["train"][-1]
+            sample_time = times_itrs["sample"][-1]
             try:
-                eval_time = times_itrs['eval'][-1]
+                eval_time = times_itrs["eval"][-1]
             except:
                 eval_time = 0
             epoch_time = train_time + sample_time + eval_time
             total_time = gt.get_times().total
 
-            logger.record_tabular('Train Time (s)', train_time)
-            logger.record_tabular('(Previous) Eval Time (s)', eval_time)
-            logger.record_tabular('Sample Time (s)', sample_time)
-            logger.record_tabular('Epoch Time (s)', epoch_time)
-            logger.record_tabular('Total Train Time (s)', total_time)
+            logger.record_tabular("Train Time (s)", train_time)
+            logger.record_tabular("(Previous) Eval Time (s)", eval_time)
+            logger.record_tabular("Sample Time (s)", sample_time)
+            logger.record_tabular("Epoch Time (s)", epoch_time)
+            logger.record_tabular("Total Train Time (s)", total_time)
             logger.record_tabular("Epoch", epoch)
             logger.dump_tabular(with_prefix=False, with_timestamp=False)
         else:
@@ -303,14 +303,13 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         validation and training set.
         """
         return (
-            len(self._exploration_paths) > 0
-            and not self.need_to_update_eval_statistics
+            len(self._exploration_paths) > 0 and not self.need_to_update_eval_statistics
         )
 
     def _can_train(self):
         return (
-            self.replay_buffer.num_steps_can_sample() >=
-            self.min_num_steps_before_training
+            self.replay_buffer.num_steps_can_sample()
+            >= self.min_num_steps_before_training
         )
 
     def _get_action_and_info(self, observation):
@@ -328,12 +327,10 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self._epoch_start_time = time.time()
         self._exploration_paths = []
         self._do_train_time = 0
-        logger.push_prefix('Iteration #%d | ' % epoch)
+        logger.push_prefix("Iteration #%d | " % epoch)
 
     def _end_epoch(self, epoch):
-        logger.log("Epoch Duration: {0}".format(
-            time.time() - self._epoch_start_time
-        ))
+        logger.log("Epoch Duration: {0}".format(time.time() - self._epoch_start_time))
         logger.log("Started Training: {0}".format(self._can_train()))
         logger.pop_prefix()
 
@@ -350,15 +347,7 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         :param path:
         :return:
         """
-        for (
-            ob,
-            action,
-            reward,
-            next_ob,
-            terminal,
-            agent_info,
-            env_info
-        ) in zip(
+        for ob, action, reward, next_ob, terminal, agent_info, env_info in zip(
             path["observations"],
             path["actions"],
             path["rewards"],
@@ -379,14 +368,14 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self._handle_rollout_ending()
 
     def _handle_step(
-            self,
-            observation,
-            action,
-            reward,
-            next_observation,
-            terminal,
-            agent_info,
-            env_info,
+        self,
+        observation,
+        action,
+        reward,
+        next_observation,
+        terminal,
+        agent_info,
+        env_info,
     ):
         """
         Implement anything that needs to happen after every step
@@ -418,9 +407,7 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
         self.replay_buffer.terminate_episode()
         self._n_rollouts_total += 1
         if len(self._current_path_builder) > 0:
-            self._exploration_paths.append(
-                self._current_path_builder.get_all_stacked()
-            )
+            self._exploration_paths.append(self._current_path_builder.get_all_stacked())
             self._current_path_builder = PathBuilder()
 
     def get_epoch_snapshot(self, epoch):
@@ -430,10 +417,10 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
             eval_policy=self.eval_policy,
         )
         if self.save_environment:
-            data_to_save['env'] = self.training_env
+            data_to_save["env"] = self.training_env
         if self.save_optim:
             raise NotImplementedError()
-            #data_to_save['optim'] = pass
+            # data_to_save['optim'] = pass
         return data_to_save
 
     def get_extra_data_to_save(self, epoch):
@@ -449,11 +436,11 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
             epoch=epoch,
         )
         if self.save_environment:
-            data_to_save['env'] = self.training_env
+            data_to_save["env"] = self.training_env
         if self.save_replay_buffer:
-            data_to_save['replay_buffer'] = self.replay_buffer
+            data_to_save["replay_buffer"] = self.replay_buffer
         if self.save_algorithm:
-            data_to_save['algorithm'] = self
+            data_to_save["algorithm"] = self
         if self.save_optim:
             raise NotImplementedError()
         return data_to_save
@@ -476,36 +463,42 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
             test_paths = eval_paths
         else:
             test_paths = self.get_eval_paths()
-        statistics.update(eval_util.get_generic_path_information(
-            test_paths, stat_prefix="Test",
-        ))
+        statistics.update(
+            eval_util.get_generic_path_information(
+                test_paths,
+                stat_prefix="Test",
+            )
+        )
         if len(self._exploration_paths) > 0:
-            statistics.update(eval_util.get_generic_path_information(
-                self._exploration_paths, stat_prefix="Exploration",
-            ))
+            statistics.update(
+                eval_util.get_generic_path_information(
+                    self._exploration_paths,
+                    stat_prefix="Exploration",
+                )
+            )
         if hasattr(self.env, "log_diagnostics"):
             self.env.log_diagnostics(test_paths, logger=logger)
         if hasattr(self.env, "get_diagnostics"):
             statistics.update(self.env.get_diagnostics(test_paths))
         print(self.env)
-        statistics['Risk'] = self.env.avg_risk()
-        statistics['MagniRisk'] = self.env.avg_magni_risk()
+        statistics["Risk"] = self.env.avg_risk()
+        statistics["MagniRisk"] = self.env.avg_magni_risk()
         bg, euglycemic, hypo, hyper, ins = self.env.glycemic_report()
-        statistics['Glucose'] = np.mean(bg)
-        statistics['MinBG'] = min(bg)
-        statistics['MaxBG'] = max(bg)
-        statistics['Insulin'] = np.mean(ins)
-        statistics['MinIns'] = min(ins)
-        statistics['MaxIns'] = max(ins)
-        statistics['GLen'] = len(bg)
-        statistics['Euglycemic'] = euglycemic
-        statistics['Hypoglycemic'] = hypo
-        statistics['Hyperglycemic'] = hyper
+        statistics["Glucose"] = np.mean(bg)
+        statistics["MinBG"] = min(bg)
+        statistics["MaxBG"] = max(bg)
+        statistics["Insulin"] = np.mean(ins)
+        statistics["MinIns"] = min(ins)
+        statistics["MaxIns"] = max(ins)
+        statistics["GLen"] = len(bg)
+        statistics["Euglycemic"] = euglycemic
+        statistics["Hypoglycemic"] = hypo
+        statistics["Hyperglycemic"] = hyper
         average_returns = eval_util.get_average_returns(test_paths)
-        statistics['AverageReturn'] = average_returns
+        statistics["AverageReturn"] = average_returns
 
-        self.max_proxy = max(statistics['AverageReturn'], self.max_proxy)
-        if self.max_proxy == statistics['AverageReturn']:
+        self.max_proxy = max(statistics["AverageReturn"], self.max_proxy)
+        if self.max_proxy == statistics["AverageReturn"]:
             params = self.get_epoch_snapshot(-1)
             logger.save_itr_params(-1, params, best=True)
 
@@ -527,10 +520,10 @@ class RLAlgorithm(metaclass=abc.ABCMeta):
 
 
 def set_to_train_mode(env):
-    if hasattr(env, 'train'):
+    if hasattr(env, "train"):
         env.train()
 
 
 def set_to_eval_mode(env):
-    if hasattr(env, 'eval'):
+    if hasattr(env, "eval"):
         env.eval()

@@ -7,8 +7,8 @@ from bgp.rlkit.torch import pytorch_util as ptu
 
 class VAEBase(PyTorchModule, metaclass=abc.ABCMeta):
     def __init__(
-            self,
-            representation_size,
+        self,
+        representation_size,
     ):
         self.save_init_params(locals())
         super().__init__()
@@ -78,8 +78,8 @@ class VAEBase(PyTorchModule, metaclass=abc.ABCMeta):
 
 class GaussianLatentVAE(VAEBase):
     def __init__(
-            self,
-            representation_size,
+        self,
+        representation_size,
     ):
         self.save_init_params(locals())
         super().__init__(representation_size)
@@ -93,8 +93,9 @@ class GaussianLatentVAE(VAEBase):
         latents = epsilon * stds + mu
         return latents
 
-    def rsample_multiple_latents(self, latent_distribution_params,
-                                 num_latents_to_sample=1):
+    def rsample_multiple_latents(
+        self, latent_distribution_params, num_latents_to_sample=1
+    ):
         mu, logvar = latent_distribution_params
         mu = mu.view((mu.size()[0], 1, mu.size()[1]))
         stds = (0.5 * logvar).exp()
@@ -126,9 +127,7 @@ class GaussianLatentVAE(VAEBase):
         :return:
         """
         mu, logvar = latent_distribution_params
-        return - 0.5 * torch.sum(
-            1 + logvar - mu.pow(2) - logvar.exp(), dim=1
-        ).mean()
+        return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1).mean()
 
     def __getstate__(self):
         d = super().__getstate__()

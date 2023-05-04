@@ -12,19 +12,19 @@ from bgp.rlkit.torch import pytorch_util as ptu
 
 class ConvVAETrainer(Serializable):
     def __init__(
-            self,
-            train_dataset,
-            test_dataset,
-            model,
-            batch_size=128,
-            log_interval=0,
-            beta=0.5,
-            lr=1e-3,
-            do_scatterplot=False,
-            normalize=False,
-            mse_weight=0.1,
-            is_auto_encoder=False,
-            background_subtract=False,
+        self,
+        train_dataset,
+        test_dataset,
+        model,
+        batch_size=128,
+        log_interval=0,
+        beta=0.5,
+        lr=1e-3,
+        do_scatterplot=False,
+        normalize=False,
+        mse_weight=0.1,
+        is_auto_encoder=False,
+        background_subtract=False,
     ):
         self.quick_init(locals())
         self.log_interval = log_interval
@@ -57,9 +57,7 @@ class ConvVAETrainer(Serializable):
 
         if self.normalize or self.background_subtract:
             self.train_data_mean = np.mean(self.train_dataset, axis=0)
-            self.train_data_mean = normalize_image(
-                np.uint8(self.train_data_mean)
-            )
+            self.train_data_mean = normalize_image(np.uint8(self.train_data_mean))
         self.vae_logger_stats_for_rl = {}
         self._extra_stats_to_log = None
 
@@ -74,15 +72,13 @@ class ConvVAETrainer(Serializable):
     def _kl_np_to_np(self, np_imgs):
         torch_input = ptu.from_numpy(normalize_image(np_imgs))
         mu, log_var = self.model.encode(torch_input)
-        return ptu.get_numpy(
-            - torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=1)
-        )
+        return ptu.get_numpy(-torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=1))
 
     def _reconstruction_squared_error_np_to_np(self, np_imgs):
         torch_input = ptu.from_numpy(normalize_image(np_imgs))
         recons, *_ = self.model(torch_input)
         error = torch_input - recons
-        return ptu.get_numpy((error ** 2).sum(dim=1))
+        return ptu.get_numpy((error**2).sum(dim=1))
 
     def set_vae(self, vae):
         self.model = vae
@@ -114,12 +110,15 @@ class ConvVAETrainer(Serializable):
         for batch_idx in range(batches):
             if sample_batch is not None:
                 data = sample_batch(self.batch_size)
-                next_obs = data['next_obs']
+                next_obs = data["next_obs"]
             else:
                 next_obs = self.get_batch()
             self.optimizer.zero_grad()
-            reconstructions, obs_distribution_params, latent_distribution_params = self.model(
-                next_obs)
+            (
+                reconstructions,
+                obs_distribution_params,
+                latent_distribution_params,
+            ) = self.model(next_obs)
             log_prob = self.model.logprob(next_obs, obs_distribution_params)
             kle = self.model.kl_divergence(latent_distribution_params)
 
@@ -133,19 +132,21 @@ class ConvVAETrainer(Serializable):
 
             self.optimizer.step()
             if self.log_interval and batch_idx % self.log_interval == 0:
-                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch,
-                    batch_idx * len(data),
-                    len(self.train_loader.dataset),
-                    100. * batch_idx / len(self.train_loader),
-                    loss.item() / len(next_obs)))
+                print(
+                    "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
+                        epoch,
+                        batch_idx * len(data),
+                        len(self.train_loader.dataset),
+                        100.0 * batch_idx / len(self.train_loader),
+                        loss.item() / len(next_obs),
+                    )
+                )
 
         if from_rl:
-            self.vae_logger_stats_for_rl['Train VAE Epoch'] = epoch
-            self.vae_logger_stats_for_rl['Train VAE Log Prob'] = np.mean(
-                log_probs)
-            self.vae_logger_stats_for_rl['Train VAE KL'] = np.mean(kles)
-            self.vae_logger_stats_for_rl['Train VAE Loss'] = np.mean(losses)
+            self.vae_logger_stats_for_rl["Train VAE Epoch"] = epoch
+            self.vae_logger_stats_for_rl["Train VAE Log Prob"] = np.mean(log_probs)
+            self.vae_logger_stats_for_rl["Train VAE KL"] = np.mean(kles)
+            self.vae_logger_stats_for_rl["Train VAE Loss"] = np.mean(losses)
         else:
             logger.record_tabular("train/epoch", epoch)
             logger.record_tabular("train/Log Prob", np.mean(log_probs))
@@ -153,11 +154,11 @@ class ConvVAETrainer(Serializable):
             logger.record_tabular("train/loss", np.mean(losses))
 
     def test_epoch(
-            self,
-            epoch,
-            save_reconstruction=True,
-            save_vae=True,
-            from_rl=False,
+        self,
+        epoch,
+        save_reconstruction=True,
+        save_vae=True,
+        from_rl=False,
     ):
         self.model.eval()
         losses = []
@@ -166,8 +167,11 @@ class ConvVAETrainer(Serializable):
         zs = []
         for batch_idx in range(10):
             next_obs = self.get_batch(train=False)
-            reconstructions, obs_distribution_params, latent_distribution_params = self.model(
-                next_obs)
+            (
+                reconstructions,
+                obs_distribution_params,
+                latent_distribution_params,
+            ) = self.model(next_obs)
             log_prob = self.model.logprob(next_obs, obs_distribution_params)
             kle = self.model.kl_divergence(latent_distribution_params)
             loss = self.beta * kle - log_prob
@@ -182,20 +186,21 @@ class ConvVAETrainer(Serializable):
 
             if batch_idx == 0 and save_reconstruction:
                 n = min(next_obs.size(0), 8)
-                comparison = torch.cat([
-                    next_obs[:n].narrow(start=0, length=self.imlength, dim=1)
-                        .contiguous().view(
-                        -1, self.input_channels, self.imsize, self.imsize
-                    ),
-                    reconstructions.view(
-                        self.batch_size,
-                        self.input_channels,
-                        self.imsize,
-                        self.imsize,
-                    )[:n]
-                ])
-                save_dir = osp.join(logger.get_snapshot_dir(),
-                                    'r%d.png' % epoch)
+                comparison = torch.cat(
+                    [
+                        next_obs[:n]
+                        .narrow(start=0, length=self.imlength, dim=1)
+                        .contiguous()
+                        .view(-1, self.input_channels, self.imsize, self.imsize),
+                        reconstructions.view(
+                            self.batch_size,
+                            self.input_channels,
+                            self.imsize,
+                            self.imsize,
+                        )[:n],
+                    ]
+                )
+                save_dir = osp.join(logger.get_snapshot_dir(), "r%d.png" % epoch)
                 save_image(comparison.data.cpu(), save_dir, nrow=n)
 
         zs = np.array(zs)
@@ -203,12 +208,11 @@ class ConvVAETrainer(Serializable):
         self.model.dist_std = zs.std(axis=0)
 
         if from_rl:
-            self.vae_logger_stats_for_rl['Test VAE Epoch'] = epoch
-            self.vae_logger_stats_for_rl['Test VAE Log Prob'] = np.mean(
-                log_probs)
-            self.vae_logger_stats_for_rl['Test VAE KL'] = np.mean(kles)
-            self.vae_logger_stats_for_rl['Test VAE loss'] = np.mean(losses)
-            self.vae_logger_stats_for_rl['VAE Beta'] = self.beta
+            self.vae_logger_stats_for_rl["Test VAE Epoch"] = epoch
+            self.vae_logger_stats_for_rl["Test VAE Log Prob"] = np.mean(log_probs)
+            self.vae_logger_stats_for_rl["Test VAE KL"] = np.mean(kles)
+            self.vae_logger_stats_for_rl["Test VAE loss"] = np.mean(losses)
+            self.vae_logger_stats_for_rl["VAE Beta"] = self.beta
         else:
             for key, value in self.debug_statistics().items():
                 logger.record_tabular(key, value)
@@ -245,26 +249,26 @@ class ConvVAETrainer(Serializable):
         random_mses = (random_imgs - img_repeated) ** 2
         mse_improvement = ptu.get_numpy(random_mses.mean(dim=1) - recon_mse)
         stats = create_stats_ordered_dict(
-            'debug/MSE improvement over random',
+            "debug/MSE improvement over random",
             mse_improvement,
         )
-        stats.update(create_stats_ordered_dict(
-            'debug/MSE of random decoding',
-            ptu.get_numpy(random_mses),
-        ))
-        stats['debug/MSE of reconstruction'] = ptu.get_numpy(
-            recon_mse
-        )[0]
+        stats.update(
+            create_stats_ordered_dict(
+                "debug/MSE of random decoding",
+                ptu.get_numpy(random_mses),
+            )
+        )
+        stats["debug/MSE of reconstruction"] = ptu.get_numpy(recon_mse)[0]
         return stats
 
     def dump_samples(self, epoch):
         self.model.eval()
         sample = ptu.randn(64, self.representation_size)
         sample = self.model.decode(sample)[0].cpu()
-        save_dir = osp.join(logger.get_snapshot_dir(), 's%d.png' % epoch)
+        save_dir = osp.join(logger.get_snapshot_dir(), "s%d.png" % epoch)
         save_image(
             sample.data.view(64, self.input_channels, self.imsize, self.imsize),
-            save_dir
+            save_dir,
         )
 
     def _dump_imgs_and_reconstructions(self, idxs, filename):

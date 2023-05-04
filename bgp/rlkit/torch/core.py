@@ -11,7 +11,6 @@ from bgp.rlkit.core.serializable import Serializable
 
 
 class PyTorchModule(nn.Module, Serializable, metaclass=abc.ABCMeta):
-
     def get_param_values(self):
         return self.state_dict()
 
@@ -93,7 +92,11 @@ class PyTorchModule(nn.Module, Serializable, metaclass=abc.ABCMeta):
 
 def torch_ify(np_array_or_other, device):
     if isinstance(np_array_or_other, np.ndarray):
-        return torch.from_numpy(np.array(np_array_or_other, dtype=float)).float().to(device)
+        return (
+            torch.from_numpy(np.array(np_array_or_other, dtype=float))
+            .float()
+            .to(device)
+        )
     else:
         return np_array_or_other
 

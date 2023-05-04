@@ -7,9 +7,9 @@ import boto3
 from bgp.rlkit.launchers.config import LOCAL_LOG_DIR, AWS_S3_PATH
 import os
 
-PICKLE = 'pickle'
-NUMPY = 'numpy'
-JOBLIB = 'joblib'
+PICKLE = "pickle"
+NUMPY = "numpy"
+JOBLIB = "joblib"
 
 
 def local_path_from_s3_or_local_path(filename):
@@ -37,13 +37,14 @@ def sync_down(path, check_exists=True):
 
     if is_docker:
         from doodad.ec2.autoconfig import AUTOCONFIG
+
         os.environ["AWS_ACCESS_KEY_ID"] = AUTOCONFIG.aws_access_key()
         os.environ["AWS_SECRET_ACCESS_KEY"] = AUTOCONFIG.aws_access_secret()
 
     full_s3_path = os.path.join(AWS_S3_PATH, path)
     bucket_name, bucket_relative_path = split_s3_full_path(full_s3_path)
     try:
-        bucket = boto3.resource('s3').Bucket(bucket_name)
+        bucket = boto3.resource("s3").Bucket(bucket_name)
         bucket.download_file(bucket_relative_path, local_path)
     except Exception as e:
         local_path = None
@@ -56,17 +57,17 @@ def split_s3_full_path(s3_path):
     """
     Split "s3://foo/bar/baz" into "foo" and "bar/baz"
     """
-    bucket_name_and_directories = s3_path.split('//')[1]
-    bucket_name, *directories = bucket_name_and_directories.split('/')
-    directory_path = '/'.join(directories)
+    bucket_name_and_directories = s3_path.split("//")[1]
+    bucket_name, *directories = bucket_name_and_directories.split("/")
+    directory_path = "/".join(directories)
     return bucket_name, directory_path
 
 
 def load_local_or_remote_file(filepath, file_type=None):
     local_path = local_path_from_s3_or_local_path(filepath)
     if file_type is None:
-        extension = local_path.split('.')[-1]
-        if extension == 'npy':
+        extension = local_path.split(".")[-1]
+        if extension == "npy":
             file_type = NUMPY
         else:
             file_type = PICKLE

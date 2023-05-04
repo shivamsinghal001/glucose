@@ -9,12 +9,13 @@ import joblib
 
 logger = logging.getLogger(__name__)
 
+
 class Action(NamedTuple):  # This plays nicer with serialization
     CHO: float
     insulin: float
 
 
-Observation = namedtuple("observation", ['Gsub'])
+Observation = namedtuple("observation", ["Gsub"])
 
 """
 class T1DPatient(Patient):
@@ -397,12 +398,13 @@ class T1DPatient(Patient):
         self.planned_meal = 0
 """
 
+
 class T1DPatientNew(Patient):
     SAMPLE_TIME = 1  # min
     EAT_RATE = 5  # g/min CHO
 
-    def __init__(self, params, init_state=None, t0=0, integrator='LSODA'):
-        '''
+    def __init__(self, params, init_state=None, t0=0, integrator="LSODA"):
+        """
         T1DPatient constructor.
         Inputs:
             - params: a pandas sequence
@@ -410,7 +412,7 @@ class T1DPatientNew(Patient):
               If not specified, load the default initial state in
               params.iloc[2:15]
             - t0: simulation start time, it is 0 by default
-        '''
+        """
         self.integrator = integrator
         self._params = params
         if init_state is None:
@@ -422,26 +424,26 @@ class T1DPatientNew(Patient):
 
     @classmethod
     def withID(cls, patient_id, patient_para_file, **kwargs):
-        '''
+        """
         Construct patient by patient_id
         id are integers from 1 to 30.
         1  - 10: adolescent#001 - adolescent#010
         11 - 20: adult#001 - adult#001
         21 - 30: child#001 - child#010
-        '''
+        """
         patient_params = pd.read_csv(patient_para_file)
         params = patient_params.iloc[patient_id - 1, :]
         return cls(params, **kwargs)
 
     @classmethod
     def withName(cls, name, patient_para_file, **kwargs):
-        '''
+        """
         Construct patient by name.
         Names can be
             adolescent#001 - adolescent#010
             adult#001 - adult#001
             child#001 - child#010
-        '''
+        """
         patient_params = pd.read_csv(patient_para_file)
         params = patient_params.loc[patient_params.Name == name].squeeze()
         return cls(params, **kwargs)
@@ -465,22 +467,21 @@ class T1DPatientNew(Patient):
 
         # Detect eating or not and update last digestion amount
         if action.CHO > 0 and self._last_action.CHO <= 0:
-            logger.info('t = {}, patient starts eating ...'.format(self.t))
+            logger.info("t = {}, patient starts eating ...".format(self.t))
             self._last_Qsto = self.state[0] + self.state[1]
             self._last_foodtaken = 0
             self.is_eating = True
 
         if to_eat > 0:
             # print(action.CHO)
-            logger.debug('t = {}, patient eats {} g'.format(
-                self.t, action.CHO))
+            logger.debug("t = {}, patient eats {} g".format(self.t, action.CHO))
 
         if self.is_eating:
             self._last_foodtaken += action.CHO  # g
 
         # Detect eating ended
         if action.CHO <= 0 and self._last_action.CHO > 0:
-            logger.info('t = {}, Patient finishes eating!'.format(self.t))
+            logger.info("t = {}, Patient finishes eating!".format(self.t))
             self.is_eating = False
 
         # Update last input
@@ -490,17 +491,20 @@ class T1DPatientNew(Patient):
 
         # print('Current simulation time: {}'.format(self.t))
         # print(self._last_Qsto)
-        sol = solve_ivp(fun=lambda time, state: self.model(time, state, action, self._params,
-                                                           self._last_Qsto, self._last_foodtaken),
-                        t_span=(self.t, self.t+self.sample_time),
-                        y0=self.state,
-                        method=self.integrator,
-                        rtol=10)
+        sol = solve_ivp(
+            fun=lambda time, state: self.model(
+                time, state, action, self._params, self._last_Qsto, self._last_foodtaken
+            ),
+            t_span=(self.t, self.t + self.sample_time),
+            y0=self.state,
+            method=self.integrator,
+            rtol=10,
+        )
         self._state = np.array(sol.y[:, -1], dtype=float)
         self._t = sol.t[-1]
         self.sol = sol
         if not sol.success:
-            raise ValueError('Integrator Failed')
+            raise ValueError("Integrator Failed")
 
     @staticmethod
     def model(t, x, action, params, last_Qsto, last_foodtaken):
@@ -534,8 +538,11 @@ class T1DPatientNew(Patient):
         if Dbar > 0:
             aa = 5 / 2 / (1 - params.b) / Dbar
             cc = 5 / 2 / params.d / Dbar
-            kgut = params.kmin + (params.kmax - params.kmin) / 2 * (np.tanh(
-                aa * (qsto - params.b * Dbar)) - np.tanh(cc * (qsto - params.d * Dbar)) + 2)
+            kgut = params.kmin + (params.kmax - params.kmin) / 2 * (
+                np.tanh(aa * (qsto - params.b * Dbar))
+                - np.tanh(cc * (qsto - params.d * Dbar))
+                + 2
+            )
         else:
             kgut = params.kmax
 
@@ -570,8 +577,12 @@ class T1DPatientNew(Patient):
         dxdt[4] = (x[4] >= 0) * dxdt[4]
 
         # insulin kinetics
-        dxdt[5] = -(params.m2 + params.m4) * x[5] + params.m1 * x[9] + params.ka1 * \
-                  x[10] + params.ka2 * x[11]  # plus insulin IV injection u[3] if needed
+        dxdt[5] = (
+            -(params.m2 + params.m4) * x[5]
+            + params.m1 * x[9]
+            + params.ka1 * x[10]
+            + params.ka2 * x[11]
+        )  # plus insulin IV injection u[3] if needed
         It = x[5] / params.Vi
         dxdt[5] = (x[5] >= 0) * dxdt[5]
 
@@ -595,34 +606,33 @@ class T1DPatientNew(Patient):
         dxdt[11] = (x[11] >= 0) * dxdt[11]
 
         # subcutaneous glucose
-        dxdt[12] = (-params.ksc * x[12] + params.ksc * x[3])
+        dxdt[12] = -params.ksc * x[12] + params.ksc * x[3]
         dxdt[12] = (x[12] >= 0) * dxdt[12]
 
         if action.insulin > basal:
-            logger.debug('t = {}, injecting insulin: {}'.format(
-                t, action.insulin))
+            logger.debug("t = {}, injecting insulin: {}".format(t, action.insulin))
 
         return dxdt
 
     @property
     def observation(self):
-        '''
+        """
         return the observation from patient
         for now, only the subcutaneous glucose level is returned
         TODO: add heart rate as an observation
-        '''
+        """
         GM = self.state[12]  # subcutaneous glucose (mg/kg)
         Gsub = GM / self._params.Vg
         observation = Observation(Gsub=Gsub)
         return observation
 
     def _announce_meal(self, meal):
-        '''
+        """
         patient announces meal.
         The announced meal will be added to self.planned_meal
         The meal is consumed in self.EAT_RATE
         The function will return the amount to eat at current time
-        '''
+        """
         self.planned_meal += meal
         if self.planned_meal > 0:
             to_eat = min(self.EAT_RATE, self.planned_meal)
@@ -633,9 +643,9 @@ class T1DPatientNew(Patient):
         return to_eat
 
     def reset(self):
-        '''
+        """
         Reset the patient state to default intial state
-        '''
+        """
         self._last_Qsto = self.init_state[0] + self.init_state[1]
         self._last_foodtaken = 0
         self.name = self._params.Name
@@ -648,21 +658,20 @@ class T1DPatientNew(Patient):
         self.planned_meal = 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     # create console handler and set level to debug
     ch = logging.StreamHandler()
     # ch.setLevel(logging.DEBUG)
     ch.setLevel(logging.INFO)
     # create formatter
-    formatter = logging.Formatter(
-        '%(name)s: %(levelname)s: %(message)s')
+    formatter = logging.Formatter("%(name)s: %(levelname)s: %(message)s")
     # add formatter to ch
     ch.setFormatter(formatter)
     # add ch to logger
     logger.addHandler(ch)
 
-    p = T1DPatientNew.withName('adolescent#001')
+    p = T1DPatientNew.withName("adolescent#001")
     basal = p._params.u2ss * p._params.BW / 6000  # U/min
     t = []
     CHO = []

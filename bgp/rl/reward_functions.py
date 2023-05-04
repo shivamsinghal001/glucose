@@ -69,13 +69,16 @@ def risk_diff_bg(bg_hist, **kwargs):
 def risk_bg(bg_hist, **kwargs):
     return -risk_index([bg_hist[-1]], 1)[-1]
 
+
 def risk_high_bg(bg_hist, **kwargs):
     l, h, _ = risk_index([bg_hist[-1]], 1)
-    return -1 * l - 100 * h 
+    return -1 * l - 100 * h
+
 
 def risk_low_bg(bg_hist, **kwargs):
     l, h, _ = risk_index([bg_hist[-1]], 1)
-    return -100 * l - h 
+    return -100 * l - h
+
 
 def reward_event(cgm_hist, **kwargs):
     if len(cgm_hist) < 1:
@@ -95,52 +98,58 @@ def reward_day(cgm_hist, **kwargs):
 
 def magni_reward(bg_hist, **kwargs):
     bg = max(1, bg_hist[-1])
-    fBG = 3.5506*(np.log(bg)**.8353-3.7932)
-    risk = 10 * (fBG)**2
-    return -1*risk
+    fBG = 3.5506 * (np.log(bg) ** 0.8353 - 3.7932)
+    risk = 10 * (fBG) ** 2
+    return -1 * risk
+
 
 def magni_misweight(bg_hist, **kwargs):
     bg = max(1, bg_hist[-1])
     if bg < 140:
-        return -1 * min(25, -5/14 * bg + 50)
+        return -1 * min(25, -5 / 14 * bg + 50)
     else:
-        fBG = 3.5506*(np.log(bg)**.8353-3.7932)
-        risk = 10 * (fBG)**2
-        return -1*risk
+        fBG = 3.5506 * (np.log(bg) ** 0.8353 - 3.7932)
+        risk = 10 * (fBG) ** 2
+        return -1 * risk
+
 
 def magni_bg_insulin(bg_hist, insulin_hist, **kwargs):
     bg = max(1, bg_hist[-1])
-    fBG = 3.5506*(np.log(bg)**.8353-3.7932)
-    risk = 10 * (fBG)**2
-    return -1*risk - 10 * insulin_hist[-1]
+    fBG = 3.5506 * (np.log(bg) ** 0.8353 - 3.7932)
+    risk = 10 * (fBG) ** 2
+    return -1 * risk - 10 * insulin_hist[-1]
+
 
 def magni_bg_insulin_true(bg_hist, insulin_hist, **kwargs):
     bg = max(1, bg_hist[-1])
-    fBG = 3.5506*(np.log(bg)**.8353-3.7932)
-    risk = 10 * (fBG)**2
-    return -1*risk - 25 * insulin_hist[-1]
+    fBG = 3.5506 * (np.log(bg) ** 0.8353 - 3.7932)
+    risk = 10 * (fBG) ** 2
+    return -1 * risk - 25 * insulin_hist[-1]
+
 
 def threshold(bg_hist, **kwargs):
     bg = max(1, bg_hist[-1])
     if bg < 140:
-        return -1*min(25, -5/14 * bg + 50)
+        return -1 * min(25, -5 / 14 * bg + 50)
     else:
-        return -1*min(25, 5/28 * bg - 25)
+        return -1 * min(25, 5 / 28 * bg - 25)
+
 
 def cameron_reward(bg_hist, **kwargs):
     bg = bg_hist[-1]
-    a = .2370  # 1/(mg/dL)
+    a = 0.2370  # 1/(mg/dL)
     b = -36.21
     c = 6.0e-5  # (1/(mg/dL)**3)
     d = 177  # mg/dL
     if bg < d:
-        risk = a*bg+b+(c*(d-bg)**3)
+        risk = a * bg + b + (c * (d - bg) ** 3)
     else:
-        risk = a*bg+b
-    return -1*risk
+        risk = a * bg + b
+    return -1 * risk
+
 
 def expected_patient_cost(bg_hist, insulin_hist, **kwargs):
-    expected_cost = .32 * np.mean(insulin_hist[-1])  # Cost of the insulin.
+    expected_cost = 0.32 * np.mean(insulin_hist[-1])  # Cost of the insulin.
     if bg_hist[-1] < 70:
         # Patient is hypoglycemic, so add potential cost of hospital visit.
         expected_cost += 1350 / (12 * 24 * 365)

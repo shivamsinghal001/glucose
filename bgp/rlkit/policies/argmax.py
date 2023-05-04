@@ -9,7 +9,7 @@ import torch
 
 
 class ArgmaxDiscretePolicy(PyTorchModule, SerializablePolicy):
-    def __init__(self, qf, device='cpu'):
+    def __init__(self, qf, device="cpu"):
         self.save_init_params(locals())
         super().__init__()
         self.qf = qf

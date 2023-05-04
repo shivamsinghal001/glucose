@@ -31,18 +31,23 @@ class CGMNoise(object):
         # To make the noise sequence continous, keep the last noise as the
         # beginning of the new sequence
         noise15 = [self._noise_init]
-        noise15.extend([next(self._noise15_gen)
-                        for _ in range(self.PRECOMPUTE)])
+        noise15.extend([next(self._noise15_gen) for _ in range(self.PRECOMPUTE)])
         self._noise_init = noise15[-1]
 
         noise15 = np.array(noise15)
         t15 = np.array(range(0, len(noise15))) * self.MDL_SAMPLE_TIME
 
-        nsample = int(math.floor(
-            self.PRECOMPUTE * self.MDL_SAMPLE_TIME / self._params["sample_time"])) + 1
+        nsample = (
+            int(
+                math.floor(
+                    self.PRECOMPUTE * self.MDL_SAMPLE_TIME / self._params["sample_time"]
+                )
+            )
+            + 1
+        )
         t = np.array(range(0, nsample)) * self._params["sample_time"]
 
-        interp_f = interp1d(t15, noise15, kind='cubic')
+        interp_f = interp1d(t15, noise15, kind="cubic")
         noise = interp_f(t)
         noise2return = deque(noise[1:])
 
@@ -61,7 +66,7 @@ class CGMNoise(object):
     def __next__(self):
         if self.count < self.n:
             if len(self.noise) == 0:
-                logger.debug('Generating a new noise sequence ...')
+                logger.debug("Generating a new noise sequence ...")
                 self.noise = self._get_noise_seq()
             self.count += 1
             return self.noise.popleft()
@@ -88,16 +93,18 @@ class noise15_iter:
             self.e = self._params["PACF"] * (self.e + self.rand_gen.randn())
         else:
             raise StopIteration()
-        eps = johnson_transform_SU(self._params["xi"],
-                                   self._params["lambda"],
-                                   self._params["gamma"],
-                                   self._params["delta"],
-                                   self.e)
+        eps = johnson_transform_SU(
+            self._params["xi"],
+            self._params["lambda"],
+            self._params["gamma"],
+            self._params["delta"],
+            self.e,
+        )
         self.count += 1
         return eps
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # logger.setLevel(logging.INFO)
     logger.setLevel(logging.DEBUG)
     # create console handler and set level to debug
@@ -105,21 +112,22 @@ if __name__ == '__main__':
     ch.setLevel(logging.INFO)
     # ch.setLevel(logging.INFO)
     # create formatter
-    formatter = logging.Formatter(
-        '%(name)s: %(levelname)s: %(message)s')
+    formatter = logging.Formatter("%(name)s: %(levelname)s: %(message)s")
     # add formatter to ch
     ch.setFormatter(formatter)
     # add ch to logger
     logger.addHandler(ch)
 
-    params = {'PACF': 0.7,
-              'gamma': -0.5444,
-              'lambda': 15.9574,
-              'delta': 1.6898,
-              'xi': -5.47,
-              'sample_time': 3,
-              'min': 39.0,
-              'max': 600.0}
+    params = {
+        "PACF": 0.7,
+        "gamma": -0.5444,
+        "lambda": 15.9574,
+        "delta": 1.6898,
+        "xi": -5.47,
+        "sample_time": 3,
+        "min": 39.0,
+        "max": 600.0,
+    }
     cgm = CGMNoiseGenerator(params, seed=1)
     noise = [n for n in cgm.gen_noise(num=1000)]
     plt.plot(noise)

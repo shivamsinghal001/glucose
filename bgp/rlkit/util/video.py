@@ -10,20 +10,20 @@ from bgp.rlkit.envs.vae_wrapper import VAEWrappedEnv
 
 
 def dump_video(
-        env,
-        policy,
-        filename,
-        rollout_function,
-        rows=3,
-        columns=6,
-        pad_length=0,
-        pad_color=255,
-        do_timer=True,
-        horizon=100,
-        dirname_to_save_images=None,
-        subdirname="rollouts",
-        imsize=84,
-        num_channels=3,
+    env,
+    policy,
+    filename,
+    rollout_function,
+    rows=3,
+    columns=6,
+    pad_length=0,
+    pad_color=255,
+    do_timer=True,
+    horizon=100,
+    dirname_to_save_images=None,
+    subdirname="rollouts",
+    imsize=84,
+    num_channels=3,
 ):
     frames = []
     H = 3 * imsize
@@ -39,17 +39,15 @@ def dump_video(
         )
         is_vae_env = isinstance(env, VAEWrappedEnv)
         l = []
-        for d in path['full_observations']:
+        for d in path["full_observations"]:
             if is_vae_env:
-                recon = np.clip(
-                    env._reconstruct_img(d['image_observation']), 0, 1
-                )
+                recon = np.clip(env._reconstruct_img(d["image_observation"]), 0, 1)
             else:
-                recon = d['image_observation']
+                recon = d["image_observation"]
             l.append(
                 get_image(
-                    d['image_desired_goal'],
-                    d['image_observation'],
+                    d["image_desired_goal"],
+                    d["image_observation"],
                     recon,
                     pad_length=pad_length,
                     pad_color=pad_color,
@@ -73,15 +71,18 @@ def dump_video(
             print(i, time.time() - start)
 
     frames = np.array(frames, dtype=np.uint8).reshape(
-        (N, horizon + 1, H + 2 * pad_length, W + 2 * pad_length, num_channels))
+        (N, horizon + 1, H + 2 * pad_length, W + 2 * pad_length, num_channels)
+    )
     f1 = []
     for k1 in range(columns):
         f2 = []
         for k2 in range(rows):
             k = k1 * rows + k2
-            f2.append(frames[k:k + 1, :, :, :, :].
-                      reshape((horizon + 1, H + 2 * pad_length,
-                               W + 2 * pad_length, num_channels)))
+            f2.append(
+                frames[k : k + 1, :, :, :, :].reshape(
+                    (horizon + 1, H + 2 * pad_length, W + 2 * pad_length, num_channels)
+                )
+            )
         f1.append(np.concatenate(f2, axis=1))
     outputdata = np.concatenate(f1, axis=2)
     skvideo.io.vwrite(filename, outputdata)
@@ -104,7 +105,9 @@ def add_border(img, pad_length, pad_color, imsize=84):
     H = 3 * imsize
     W = imsize
     img = img.reshape((3 * imsize, imsize, -1))
-    img2 = np.ones((H + 2 * pad_length, W + 2 * pad_length, img.shape[2]),
-                   dtype=np.uint8) * pad_color
+    img2 = (
+        np.ones((H + 2 * pad_length, W + 2 * pad_length, img.shape[2]), dtype=np.uint8)
+        * pad_color
+    )
     img2[pad_length:-pad_length, pad_length:-pad_length, :] = img
     return img2

@@ -39,37 +39,61 @@ class SimpleCNNQ(PyTorchModule):
     Baseline 1D-CNN for Deep Q network
     TODO: this architecture isn't necessarily any good for glucose
     """
+
     def __init__(self, input_size, output_size, device, init_w=3e-3):
         self.save_init_params(locals())
         super(SimpleCNNQ, self).__init__()
         self.channel_size = input_size[0]
         self.signal_length = input_size[1]
-        self.convolution = nn.Sequential(OrderedDict([
-            ('conv1_1', nn.Conv1d(in_channels=self.channel_size, out_channels=32, kernel_size=3)),
-            ('bn1_1', nn.BatchNorm1d(num_features=32)),
-            ('relu1_1', nn.ReLU()),
-            ('conv1_2', nn.Conv1d(in_channels=32, out_channels=32, kernel_size=3)),
-            ('bn1_2', nn.BatchNorm1d(num_features=32)),
-            ('relu1_2', nn.ReLU()),
-            ('maxpool1', nn.MaxPool1d(kernel_size=2)),
-
-            ('conv2_1', nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3)),
-            ('bn2_1', nn.BatchNorm1d(num_features=64)),
-            ('relu2_1', nn.ReLU()),
-            ('conv2_2', nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3)),
-            ('bn2_2', nn.BatchNorm1d(num_features=64)),
-            ('relu2_2', nn.ReLU()),
-            ('maxpool2', nn.MaxPool1d(kernel_size=2))
-        ]))
+        self.convolution = nn.Sequential(
+            OrderedDict(
+                [
+                    (
+                        "conv1_1",
+                        nn.Conv1d(
+                            in_channels=self.channel_size,
+                            out_channels=32,
+                            kernel_size=3,
+                        ),
+                    ),
+                    ("bn1_1", nn.BatchNorm1d(num_features=32)),
+                    ("relu1_1", nn.ReLU()),
+                    (
+                        "conv1_2",
+                        nn.Conv1d(in_channels=32, out_channels=32, kernel_size=3),
+                    ),
+                    ("bn1_2", nn.BatchNorm1d(num_features=32)),
+                    ("relu1_2", nn.ReLU()),
+                    ("maxpool1", nn.MaxPool1d(kernel_size=2)),
+                    (
+                        "conv2_1",
+                        nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3),
+                    ),
+                    ("bn2_1", nn.BatchNorm1d(num_features=64)),
+                    ("relu2_1", nn.ReLU()),
+                    (
+                        "conv2_2",
+                        nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3),
+                    ),
+                    ("bn2_2", nn.BatchNorm1d(num_features=64)),
+                    ("relu2_2", nn.ReLU()),
+                    ("maxpool2", nn.MaxPool1d(kernel_size=2)),
+                ]
+            )
+        )
 
         feature_size = self.determine_feature_size(input_size)
 
-        self.dense = nn.Sequential(OrderedDict([
-            ('fc', nn.Linear(in_features=feature_size, out_features=512)),
-            ('bn_d', nn.BatchNorm1d(num_features=512)),
-            ('relu_d', nn.ReLU()),
-            ('dropout', nn.Dropout(p=0.2))
-        ]))
+        self.dense = nn.Sequential(
+            OrderedDict(
+                [
+                    ("fc", nn.Linear(in_features=feature_size, out_features=512)),
+                    ("bn_d", nn.BatchNorm1d(num_features=512)),
+                    ("relu_d", nn.ReLU()),
+                    ("dropout", nn.Dropout(p=0.2)),
+                ]
+            )
+        )
 
         self.last_fc = nn.Linear(512, output_size)
         self.last_fc.weight.data.uniform_(-init_w, init_w)
@@ -86,8 +110,10 @@ class SimpleCNNQ(PyTorchModule):
 
     def forward(self, input, action_input=None):
         if action_input is not None:
-            input = input.reshape((-1, self.channel_size-1, self.signal_length))
-            action_stack = tuple(action_input.flatten() for _ in range(self.signal_length))
+            input = input.reshape((-1, self.channel_size - 1, self.signal_length))
+            action_stack = tuple(
+                action_input.flatten() for _ in range(self.signal_length)
+            )
             action_stack = torch.stack(action_stack).transpose(0, 1)[:, None, :]
             input = torch.cat((action_stack, input), dim=1)
         else:
@@ -103,46 +129,77 @@ class FancyCNNQ(PyTorchModule):
     Slightly-less Baseline 1D-CNN for Deep Q network
     TODO: this architecture isn't necessarily any good for glucose
     """
+
     def __init__(self, input_size, output_size, device, init_w=3e-3):
         self.save_init_params(locals())
         super(FancyCNNQ, self).__init__()
         self.channel_size = input_size[0]
         self.signal_length = input_size[1]
-        self.convolution = nn.Sequential(OrderedDict([
-            ('conv1_1', nn.Conv1d(in_channels=self.channel_size, out_channels=32, kernel_size=7, stride=2, padding=3)),
-            ('bn1_1', nn.BatchNorm1d(num_features=32)),
-            ('relu1_1', nn.ReLU()),
-            ('maxpool1', nn.MaxPool1d(kernel_size=3, stride=2, padding=1)),
-            ('conv1_2', nn.Conv1d(in_channels=32, out_channels=32, kernel_size=3)),
-            ('bn1_2', nn.BatchNorm1d(num_features=32)),
-            ('relu1_2', nn.ReLU()),
-            ('maxpool2', nn.MaxPool1d(kernel_size=2)),
-
-            ('conv2_1', nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3)),
-            ('bn2_1', nn.BatchNorm1d(num_features=64)),
-            ('relu2_1', nn.ReLU()),
-            ('conv2_2', nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3)),
-            ('bn2_2', nn.BatchNorm1d(num_features=64)),
-            ('relu2_2', nn.ReLU()),
-            ('maxpool3', nn.MaxPool1d(kernel_size=2)),
-
-            ('conv3_1', nn.Conv1d(in_channels=64, out_channels=128, kernel_size=3)),
-            ('bn3_1', nn.BatchNorm1d(num_features=128)),
-            ('relu3_1', nn.ReLU()),
-            ('conv3_2', nn.Conv1d(in_channels=128, out_channels=128, kernel_size=3)),
-            ('bn3_2', nn.BatchNorm1d(num_features=128)),
-            ('relu3_2', nn.ReLU()),
-            ('maxpool4', nn.MaxPool1d(kernel_size=2))
-        ]))
+        self.convolution = nn.Sequential(
+            OrderedDict(
+                [
+                    (
+                        "conv1_1",
+                        nn.Conv1d(
+                            in_channels=self.channel_size,
+                            out_channels=32,
+                            kernel_size=7,
+                            stride=2,
+                            padding=3,
+                        ),
+                    ),
+                    ("bn1_1", nn.BatchNorm1d(num_features=32)),
+                    ("relu1_1", nn.ReLU()),
+                    ("maxpool1", nn.MaxPool1d(kernel_size=3, stride=2, padding=1)),
+                    (
+                        "conv1_2",
+                        nn.Conv1d(in_channels=32, out_channels=32, kernel_size=3),
+                    ),
+                    ("bn1_2", nn.BatchNorm1d(num_features=32)),
+                    ("relu1_2", nn.ReLU()),
+                    ("maxpool2", nn.MaxPool1d(kernel_size=2)),
+                    (
+                        "conv2_1",
+                        nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3),
+                    ),
+                    ("bn2_1", nn.BatchNorm1d(num_features=64)),
+                    ("relu2_1", nn.ReLU()),
+                    (
+                        "conv2_2",
+                        nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3),
+                    ),
+                    ("bn2_2", nn.BatchNorm1d(num_features=64)),
+                    ("relu2_2", nn.ReLU()),
+                    ("maxpool3", nn.MaxPool1d(kernel_size=2)),
+                    (
+                        "conv3_1",
+                        nn.Conv1d(in_channels=64, out_channels=128, kernel_size=3),
+                    ),
+                    ("bn3_1", nn.BatchNorm1d(num_features=128)),
+                    ("relu3_1", nn.ReLU()),
+                    (
+                        "conv3_2",
+                        nn.Conv1d(in_channels=128, out_channels=128, kernel_size=3),
+                    ),
+                    ("bn3_2", nn.BatchNorm1d(num_features=128)),
+                    ("relu3_2", nn.ReLU()),
+                    ("maxpool4", nn.MaxPool1d(kernel_size=2)),
+                ]
+            )
+        )
 
         feature_size = self.determine_feature_size(input_size)
 
-        self.dense = nn.Sequential(OrderedDict([
-            ('fc', nn.Linear(in_features=feature_size, out_features=256)),
-            ('bn_d', nn.BatchNorm1d(num_features=256)),
-            ('relu_d', nn.ReLU()),
-            ('dropout', nn.Dropout(p=0.2))
-        ]))
+        self.dense = nn.Sequential(
+            OrderedDict(
+                [
+                    ("fc", nn.Linear(in_features=feature_size, out_features=256)),
+                    ("bn_d", nn.BatchNorm1d(num_features=256)),
+                    ("relu_d", nn.ReLU()),
+                    ("dropout", nn.Dropout(p=0.2)),
+                ]
+            )
+        )
 
         self.last_fc = nn.Linear(256, output_size)
         self.last_fc.weight.data.uniform_(-init_w, init_w)
@@ -159,8 +216,10 @@ class FancyCNNQ(PyTorchModule):
 
     def forward(self, input, action_input=None):
         if action_input is not None:
-            input = input.reshape((-1, self.channel_size-1, self.signal_length))
-            action_stack = tuple(action_input.flatten() for _ in range(self.signal_length))
+            input = input.reshape((-1, self.channel_size - 1, self.signal_length))
+            action_stack = tuple(
+                action_input.flatten() for _ in range(self.signal_length)
+            )
             action_stack = torch.stack(action_stack).transpose(0, 1)[:, None, :]
             input = torch.cat((action_stack, input), dim=1)
         else:
@@ -184,43 +243,82 @@ def _bn_function_factory(norm, relu, conv):
 
 
 class _DenseLayer(nn.Module):
-    def __init__(self, num_input_features, growth_rate, bn_size, drop_rate, efficient=False):
+    def __init__(
+        self, num_input_features, growth_rate, bn_size, drop_rate, efficient=False
+    ):
         super(_DenseLayer, self).__init__()
-        self.add_module('norm1', nn.BatchNorm1d(num_input_features)),
-        self.add_module('relu1', nn.ReLU(inplace=True)),
-        self.add_module('conv1', nn.Conv1d(num_input_features, bn_size * growth_rate,
-                        kernel_size=1, stride=1, bias=False)),
-        self.add_module('norm2', nn.BatchNorm1d(bn_size * growth_rate)),
-        self.add_module('relu2', nn.ReLU(inplace=True)),
-        self.add_module('conv2', nn.Conv1d(bn_size * growth_rate, growth_rate,
-                        kernel_size=3, stride=1, padding=1, bias=False)),
+        self.add_module("norm1", nn.BatchNorm1d(num_input_features)),
+        self.add_module("relu1", nn.ReLU(inplace=True)),
+        self.add_module(
+            "conv1",
+            nn.Conv1d(
+                num_input_features,
+                bn_size * growth_rate,
+                kernel_size=1,
+                stride=1,
+                bias=False,
+            ),
+        ),
+        self.add_module("norm2", nn.BatchNorm1d(bn_size * growth_rate)),
+        self.add_module("relu2", nn.ReLU(inplace=True)),
+        self.add_module(
+            "conv2",
+            nn.Conv1d(
+                bn_size * growth_rate,
+                growth_rate,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=False,
+            ),
+        ),
         self.drop_rate = drop_rate
         self.efficient = efficient
 
     def forward(self, *prev_features):
         bn_function = _bn_function_factory(self.norm1, self.relu1, self.conv1)
-        if self.efficient and any(prev_feature.requires_grad for prev_feature in prev_features):
+        if self.efficient and any(
+            prev_feature.requires_grad for prev_feature in prev_features
+        ):
             bottleneck_output = cp.checkpoint(bn_function, *prev_features)
         else:
             bottleneck_output = bn_function(*prev_features)
         new_features = self.conv2(self.relu2(self.norm2(bottleneck_output)))
         if self.drop_rate > 0:
-            new_features = F.dropout(new_features, p=self.drop_rate, training=self.training)
+            new_features = F.dropout(
+                new_features, p=self.drop_rate, training=self.training
+            )
         return new_features
 
 
 class _Transition(nn.Sequential):
     def __init__(self, num_input_features, num_output_features):
         super(_Transition, self).__init__()
-        self.add_module('norm', nn.BatchNorm1d(num_input_features))
-        self.add_module('relu', nn.ReLU(inplace=True))
-        self.add_module('conv', nn.Conv1d(num_input_features, num_output_features,
-                                          kernel_size=1, stride=1, bias=False))
-        self.add_module('pool', nn.AvgPool1d(kernel_size=2, stride=2))
+        self.add_module("norm", nn.BatchNorm1d(num_input_features))
+        self.add_module("relu", nn.ReLU(inplace=True))
+        self.add_module(
+            "conv",
+            nn.Conv1d(
+                num_input_features,
+                num_output_features,
+                kernel_size=1,
+                stride=1,
+                bias=False,
+            ),
+        )
+        self.add_module("pool", nn.AvgPool1d(kernel_size=2, stride=2))
 
 
 class _DenseBlock(nn.Module):
-    def __init__(self, num_layers, num_input_features, bn_size, growth_rate, drop_rate, efficient=False):
+    def __init__(
+        self,
+        num_layers,
+        num_input_features,
+        bn_size,
+        growth_rate,
+        drop_rate,
+        efficient=False,
+    ):
         super(_DenseBlock, self).__init__()
         for i in range(num_layers):
             layer = _DenseLayer(
@@ -230,7 +328,7 @@ class _DenseBlock(nn.Module):
                 drop_rate=drop_rate,
                 efficient=efficient,
             )
-            self.add_module('denselayer%d' % (i + 1), layer)
+            self.add_module("denselayer%d" % (i + 1), layer)
 
     def forward(self, init_features):
         features = [init_features]
@@ -254,27 +352,66 @@ class DenseNet(nn.Module):
         small_inputs (bool) - set to True if images are 32x32. Otherwise assumes images are larger.
         efficient (bool) - set to True to use checkpointing. Much more memory efficient, but slower.
     """
-    def __init__(self, growth_rate=12, block_config=(16, 16, 16), compression=0.5,
-                 num_init_features=24, bn_size=4, drop_rate=0,
-                 num_classes=10, small_inputs=True, efficient=False):
 
+    def __init__(
+        self,
+        growth_rate=12,
+        block_config=(16, 16, 16),
+        compression=0.5,
+        num_init_features=24,
+        bn_size=4,
+        drop_rate=0,
+        num_classes=10,
+        small_inputs=True,
+        efficient=False,
+    ):
         super(DenseNet, self).__init__()
-        assert 0 < compression <= 1, 'compression of densenet should be between 0 and 1'
+        assert 0 < compression <= 1, "compression of densenet should be between 0 and 1"
         self.avgpool_size = 8 if small_inputs else 7
 
         # First convolution
         if small_inputs:
-            self.features = nn.Sequential(OrderedDict([
-                ('conv0', nn.Conv1d(3, num_init_features, kernel_size=3, stride=1, padding=1, bias=False)),
-            ]))
+            self.features = nn.Sequential(
+                OrderedDict(
+                    [
+                        (
+                            "conv0",
+                            nn.Conv1d(
+                                3,
+                                num_init_features,
+                                kernel_size=3,
+                                stride=1,
+                                padding=1,
+                                bias=False,
+                            ),
+                        ),
+                    ]
+                )
+            )
         else:
-            self.features = nn.Sequential(OrderedDict([
-                ('conv0', nn.Conv1d(3, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)),
-            ]))
-            self.features.add_module('norm0', nn.BatchNorm1d(num_init_features))
-            self.features.add_module('relu0', nn.ReLU(inplace=True))
-            self.features.add_module('pool0', nn.MaxPool1d(kernel_size=3, stride=2, padding=1,
-                                                           ceil_mode=False))
+            self.features = nn.Sequential(
+                OrderedDict(
+                    [
+                        (
+                            "conv0",
+                            nn.Conv1d(
+                                3,
+                                num_init_features,
+                                kernel_size=7,
+                                stride=2,
+                                padding=3,
+                                bias=False,
+                            ),
+                        ),
+                    ]
+                )
+            )
+            self.features.add_module("norm0", nn.BatchNorm1d(num_init_features))
+            self.features.add_module("relu0", nn.ReLU(inplace=True))
+            self.features.add_module(
+                "pool0",
+                nn.MaxPool1d(kernel_size=3, stride=2, padding=1, ceil_mode=False),
+            )
 
         # Each denseblock
         num_features = num_init_features
@@ -287,36 +424,40 @@ class DenseNet(nn.Module):
                 drop_rate=drop_rate,
                 efficient=efficient,
             )
-            self.features.add_module('denseblock%d' % (i + 1), block)
+            self.features.add_module("denseblock%d" % (i + 1), block)
             num_features = num_features + num_layers * growth_rate
             if i != len(block_config) - 1:
-                trans = _Transition(num_input_features=num_features,
-                                    num_output_features=int(num_features * compression))
-                self.features.add_module('transition%d' % (i + 1), trans)
+                trans = _Transition(
+                    num_input_features=num_features,
+                    num_output_features=int(num_features * compression),
+                )
+                self.features.add_module("transition%d" % (i + 1), trans)
                 num_features = int(num_features * compression)
 
         # Final batch norm
-        self.features.add_module('norm_final', nn.BatchNorm1d(num_features))
+        self.features.add_module("norm_final", nn.BatchNorm1d(num_features))
 
         # Linear layer
         self.classifier = nn.Linear(num_features, num_classes)
 
         # Initialization
         for name, param in self.named_parameters():
-            if 'conv' in name and 'weight' in name:
+            if "conv" in name and "weight" in name:
                 n = param.size(0) * param.size(2) * param.size(3)
-                param.data.normal_().mul_(math.sqrt(2. / n))
-            elif 'norm' in name and 'weight' in name:
+                param.data.normal_().mul_(math.sqrt(2.0 / n))
+            elif "norm" in name and "weight" in name:
                 param.data.fill_(1)
-            elif 'norm' in name and 'bias' in name:
+            elif "norm" in name and "bias" in name:
                 param.data.fill_(0)
-            elif 'classifier' in name and 'bias' in name:
+            elif "classifier" in name and "bias" in name:
                 param.data.fill_(0)
 
     def forward(self, x):
         features = self.features(x)
         out = F.relu(features, inplace=True)
-        out = F.avg_pool2d(out, kernel_size=self.avgpool_size).view(features.size(0), -1)
+        out = F.avg_pool2d(out, kernel_size=self.avgpool_size).view(
+            features.size(0), -1
+        )
         out = self.classifier(out)
         return out
 
@@ -326,19 +467,36 @@ class SimpleGRUQ(PyTorchModule):
     Baseline 1D-GRU for Deep Q network
     TODO: this architecture isn't necessarily any good for glucose
     """
-    def __init__(self, input_size, output_size, device, hidden_size=128, num_layers=1, init_w=3e-3, dilation=False):
+
+    def __init__(
+        self,
+        input_size,
+        output_size,
+        device,
+        hidden_size=128,
+        num_layers=1,
+        init_w=3e-3,
+        dilation=False,
+    ):
         self.save_init_params(locals())
         super(SimpleGRUQ, self).__init__()
         self.channel_size = input_size[0]
         self.signal_length = input_size[1]
         if dilation:
-            self.features = DRNN(input_size=self.channel_size,
-                                 hidden_size=hidden_size, num_layers=num_layers,
-                                 batch_first=True, device=device)
+            self.features = DRNN(
+                input_size=self.channel_size,
+                hidden_size=hidden_size,
+                num_layers=num_layers,
+                batch_first=True,
+                device=device,
+            )
         else:
-            self.features = nn.GRU(input_size=self.channel_size,
-                                   hidden_size=hidden_size, num_layers=num_layers,
-                                   batch_first=True)
+            self.features = nn.GRU(
+                input_size=self.channel_size,
+                hidden_size=hidden_size,
+                num_layers=num_layers,
+                batch_first=True,
+            )
 
         self.last_fc = nn.Linear(hidden_size, output_size)
         self.last_fc.weight.data.uniform_(-init_w, init_w)
@@ -349,12 +507,18 @@ class SimpleGRUQ(PyTorchModule):
 
     def forward(self, input, action_input=None):
         if action_input is not None:
-            input = input.reshape(-1, self.channel_size-1, self.signal_length).permute(0, 2, 1)
-            action_stack = tuple(action_input.flatten() for _ in range(self.signal_length))
+            input = input.reshape(
+                -1, self.channel_size - 1, self.signal_length
+            ).permute(0, 2, 1)
+            action_stack = tuple(
+                action_input.flatten() for _ in range(self.signal_length)
+            )
             action_stack = torch.stack(action_stack).transpose(0, 1)[:, :, None].float()
             input = torch.cat((action_stack, input), dim=2)
         else:
-            input = input.reshape(-1, self.channel_size, self.signal_length).permute(0, 2, 1)
+            input = input.reshape(-1, self.channel_size, self.signal_length).permute(
+                0, 2, 1
+            )
         h, _ = self.features(input)
         feat = h[:, -1, :]
         return self.last_fc(feat)
@@ -362,18 +526,18 @@ class SimpleGRUQ(PyTorchModule):
 
 class Mlp(PyTorchModule):
     def __init__(
-            self,
-            hidden_sizes,
-            output_size,
-            input_size,
-            init_w=3e-3,
-            hidden_activation=F.relu,
-            output_activation=identity,
-            hidden_init=ptu.fanin_init,
-            b_init_value=0.1,
-            layer_norm=False,
-            layer_norm_kwargs=None,
-            device='cpu'
+        self,
+        hidden_sizes,
+        output_size,
+        input_size,
+        init_w=3e-3,
+        hidden_activation=F.relu,
+        output_activation=identity,
+        hidden_init=ptu.fanin_init,
+        b_init_value=0.1,
+        layer_norm=False,
+        layer_norm_kwargs=None,
+        device="cpu",
     ):
         self.save_init_params(locals())
         super().__init__()
@@ -438,12 +602,7 @@ class MlpPolicy(Mlp, Policy):
     A simpler interface for creating policies.
     """
 
-    def __init__(
-            self,
-            *args,
-            obs_normalizer: TorchFixedNormalizer = None,
-            **kwargs
-    ):
+    def __init__(self, *args, obs_normalizer: TorchFixedNormalizer = None, **kwargs):
         self.save_init_params(locals())
         super().__init__(*args, **kwargs)
         self.obs_normalizer = obs_normalizer
@@ -465,16 +624,26 @@ class TanhMlpPolicy(MlpPolicy):
     """
     A helper class since most policies have a tanh output activation.
     """
+
     def __init__(self, *args, **kwargs):
         self.save_init_params(locals())
         super().__init__(*args, output_activation=torch.tanh, **kwargs)
 
 
 class DRNN(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, device, dropout=0, cell_type='GRU', batch_first=False):
+    def __init__(
+        self,
+        input_size,
+        hidden_size,
+        num_layers,
+        device,
+        dropout=0,
+        cell_type="GRU",
+        batch_first=False,
+    ):
         super(DRNN, self).__init__()
 
-        self.dilations = [2 ** i for i in range(num_layers)]
+        self.dilations = [2**i for i in range(num_layers)]
         self.cell_type = cell_type
         self.batch_first = batch_first
         self.hidden_size = hidden_size
@@ -522,19 +691,25 @@ class DRNN(nn.Module):
         dilated_inputs = self._prepare_inputs(inputs, rate)
 
         if hidden is None:
-            dilated_outputs, hidden = self._apply_cell(dilated_inputs, cell, batch_size, rate, hidden_size)
+            dilated_outputs, hidden = self._apply_cell(
+                dilated_inputs, cell, batch_size, rate, hidden_size
+            )
         else:
             hidden = self._prepare_inputs(hidden, rate)
-            dilated_outputs, hidden = self._apply_cell(dilated_inputs, cell, batch_size, rate, hidden_size, hidden=hidden)
+            dilated_outputs, hidden = self._apply_cell(
+                dilated_inputs, cell, batch_size, rate, hidden_size, hidden=hidden
+            )
 
         splitted_outputs = self._split_outputs(dilated_outputs, rate)
         outputs = self._unpad_outputs(splitted_outputs, n_steps)
 
         return outputs, hidden
 
-    def _apply_cell(self, dilated_inputs, cell, batch_size, rate, hidden_size, hidden=None):
+    def _apply_cell(
+        self, dilated_inputs, cell, batch_size, rate, hidden_size, hidden=None
+    ):
         if hidden is None:
-            if self.cell_type == 'LSTM':
+            if self.cell_type == "LSTM":
                 c, m = self.init_hidden(batch_size * rate, hidden_size)
                 hidden = (c.unsqueeze(0), m.unsqueeze(0))
             else:
@@ -550,12 +725,15 @@ class DRNN(nn.Module):
     def _split_outputs(self, dilated_outputs, rate):
         batchsize = dilated_outputs.size(1) // rate
 
-        blocks = [dilated_outputs[:, i * batchsize: (i + 1) * batchsize, :] for i in range(rate)]
+        blocks = [
+            dilated_outputs[:, i * batchsize : (i + 1) * batchsize, :]
+            for i in range(rate)
+        ]
 
         interleaved = torch.stack((blocks)).transpose(1, 0).contiguous()
-        interleaved = interleaved.view(dilated_outputs.size(0) * rate,
-                                       batchsize,
-                                       dilated_outputs.size(2))
+        interleaved = interleaved.view(
+            dilated_outputs.size(0) * rate, batchsize, dilated_outputs.size(2)
+        )
         return interleaved
 
     def _pad_inputs(self, inputs, n_steps, rate):
@@ -564,9 +742,12 @@ class DRNN(nn.Module):
         if not is_even:
             dilated_steps = n_steps // rate + 1
 
-            zeros_ = torch.zeros(dilated_steps * rate - inputs.size(0),
-                                 inputs.size(1),
-                                 inputs.size(2), device=self.device)
+            zeros_ = torch.zeros(
+                dilated_steps * rate - inputs.size(0),
+                inputs.size(1),
+                inputs.size(2),
+                device=self.device,
+            )
 
             inputs = torch.cat((inputs, zeros_))
         else:

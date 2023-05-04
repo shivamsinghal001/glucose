@@ -56,12 +56,7 @@ def rollout(env, agent, max_path_length=np.inf, animated=False):
     if len(observations.shape) == 1:
         observations = np.expand_dims(observations, 1)
         next_o = np.array([next_o])
-    next_observations = np.vstack(
-        (
-            observations[1:, :],
-            np.expand_dims(next_o, 0)
-        )
-    )
+    next_observations = np.vstack((observations[1:, :], np.expand_dims(next_o, 0)))
     return dict(
         observations=observations,
         actions=actions,
@@ -118,7 +113,4 @@ def get_stat_in_paths(paths, dict_name, scalar_name):
         # Support rllab interface
         return [path[dict_name][scalar_name] for path in paths]
 
-    return [
-        [info[scalar_name] for info in path[dict_name]]
-        for path in paths
-    ]
+    return [[info[scalar_name] for info in path[dict_name]] for path in paths]

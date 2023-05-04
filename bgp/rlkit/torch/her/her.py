@@ -42,22 +42,22 @@ class HER(TorchRLAlgorithm):
     """
 
     def __init__(
-            self,
-            observation_key=None,
-            desired_goal_key=None,
+        self,
+        observation_key=None,
+        desired_goal_key=None,
     ):
         self.observation_key = observation_key
         self.desired_goal_key = desired_goal_key
 
     def _handle_step(
-            self,
-            observation,
-            action,
-            reward,
-            next_observation,
-            terminal,
-            agent_info,
-            env_info,
+        self,
+        observation,
+        action,
+        reward,
+        next_observation,
+        terminal,
+        agent_info,
+        env_info,
     ):
         self._current_path_builder.add_all(
             observations=observation,
@@ -76,17 +76,11 @@ class HER(TorchRLAlgorithm):
 
     def get_batch(self):
         batch = super().get_batch()
-        obs = batch['observations']
-        next_obs = batch['next_observations']
-        goals = batch['resampled_goals']
-        batch['observations'] = torch.cat((
-            obs,
-            goals
-        ), dim=1)
-        batch['next_observations'] = torch.cat((
-            next_obs,
-            goals
-        ), dim=1)
+        obs = batch["observations"]
+        next_obs = batch["next_observations"]
+        goals = batch["resampled_goals"]
+        batch["observations"] = torch.cat((obs, goals), dim=1)
+        batch["next_observations"] = torch.cat((next_obs, goals), dim=1)
         return batch
 
     def _handle_rollout_ending(self):
@@ -104,10 +98,12 @@ class HER(TorchRLAlgorithm):
         :return:
         """
         self.exploration_policy.set_num_steps_total(self._n_env_steps_total)
-        new_obs = np.hstack((
-            observation[self.observation_key],
-            observation[self.desired_goal_key],
-        ))
+        new_obs = np.hstack(
+            (
+                observation[self.observation_key],
+                observation[self.desired_goal_key],
+            )
+        )
         return self.exploration_policy.get_action(new_obs)
 
     def get_eval_paths(self):
@@ -116,7 +112,7 @@ class HER(TorchRLAlgorithm):
         while n_steps_total <= self.num_steps_per_eval:
             path = self.eval_multitask_rollout()
             paths.append(path)
-            n_steps_total += len(path['observations'])
+            n_steps_total += len(path["observations"])
         return paths
 
     def eval_multitask_rollout(self):
@@ -130,84 +126,45 @@ class HER(TorchRLAlgorithm):
 
 
 class HerTd3(HER, TD3):
-    def __init__(
-            self,
-            *args,
-            her_kwargs,
-            td3_kwargs,
-            **kwargs
-    ):
+    def __init__(self, *args, her_kwargs, td3_kwargs, **kwargs):
         HER.__init__(self, **her_kwargs)
         TD3.__init__(self, *args, **kwargs, **td3_kwargs)
-        assert isinstance(
-            self.replay_buffer, RelabelingReplayBuffer
-        ) or isinstance(
+        assert isinstance(self.replay_buffer, RelabelingReplayBuffer) or isinstance(
             self.replay_buffer, ObsDictRelabelingBuffer
         )
 
 
 class HerSac(HER, SoftActorCritic):
-    def __init__(
-            self,
-            *args,
-            her_kwargs,
-            sac_kwargs,
-            **kwargs
-    ):
+    def __init__(self, *args, her_kwargs, sac_kwargs, **kwargs):
         HER.__init__(self, **her_kwargs)
         SoftActorCritic.__init__(self, *args, **kwargs, **sac_kwargs)
-        assert isinstance(
-            self.replay_buffer, RelabelingReplayBuffer
-        ) or isinstance(
+        assert isinstance(self.replay_buffer, RelabelingReplayBuffer) or isinstance(
             self.replay_buffer, ObsDictRelabelingBuffer
         )
 
 
 class HerDdpg(HER, DDPG):
-    def __init__(
-            self,
-            *args,
-            her_kwargs,
-            ddpg_kwargs,
-            **kwargs
-    ):
+    def __init__(self, *args, her_kwargs, ddpg_kwargs, **kwargs):
         HER.__init__(self, **her_kwargs)
         DDPG.__init__(self, *args, **kwargs, **ddpg_kwargs)
-        assert isinstance(
-            self.replay_buffer, RelabelingReplayBuffer
-        ) or isinstance(
+        assert isinstance(self.replay_buffer, RelabelingReplayBuffer) or isinstance(
             self.replay_buffer, ObsDictRelabelingBuffer
         )
 
 
 class HerTwinSAC(HER, TwinSAC):
-    def __init__(
-            self,
-            *args,
-            her_kwargs,
-            tsac_kwargs,
-            **kwargs
-    ):
+    def __init__(self, *args, her_kwargs, tsac_kwargs, **kwargs):
         HER.__init__(self, **her_kwargs)
         TwinSAC.__init__(self, *args, **kwargs, **tsac_kwargs)
-        assert isinstance(
-            self.replay_buffer, RelabelingReplayBuffer
-        ) or isinstance(
+        assert isinstance(self.replay_buffer, RelabelingReplayBuffer) or isinstance(
             self.replay_buffer, ObsDictRelabelingBuffer
         )
 
+
 class HerDQN(HER, DQN):
-    def __init__(
-            self,
-            *args,
-            her_kwargs,
-            dqn_kwargs,
-            **kwargs
-    ):
+    def __init__(self, *args, her_kwargs, dqn_kwargs, **kwargs):
         HER.__init__(self, **her_kwargs)
         DQN.__init__(self, *args, **kwargs, **dqn_kwargs)
-        assert isinstance(
-            self.replay_buffer, RelabelingReplayBuffer
-        ) or isinstance(
+        assert isinstance(self.replay_buffer, RelabelingReplayBuffer) or isinstance(
             self.replay_buffer, ObsDictRelabelingBuffer
         )

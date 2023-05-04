@@ -11,12 +11,13 @@ class HerReplayBuffer(EnvReplayBuffer):
     Implementation details:
      - Every sample from [0, self._size] will be valid.
     """
+
     def __init__(
-            self,
-            max_size,
-            env,
-            num_goals_to_sample=4,
-            fraction_goals_are_rollout_goals=None,
+        self,
+        max_size,
+        env,
+        num_goals_to_sample=4,
+        fraction_goals_are_rollout_goals=None,
     ):
         """
 
@@ -31,19 +32,16 @@ class HerReplayBuffer(EnvReplayBuffer):
         self._goals = np.zeros((max_size, self.env.goal_dim))
         self._num_steps_left = np.zeros((max_size, 1))
         if fraction_goals_are_rollout_goals is None:
-            fraction_goals_are_rollout_goals = (
-                    1. / num_goals_to_sample
-            )
-        self.fraction_goals_are_rollout_goals = (
-            fraction_goals_are_rollout_goals
-        )
+            fraction_goals_are_rollout_goals = 1.0 / num_goals_to_sample
+        self.fraction_goals_are_rollout_goals = fraction_goals_are_rollout_goals
 
         # Let j be any index in self._idx_to_future_obs_idx[i]
         # Then self._next_obs[j] is a valid next observation for observation i
         self._idx_to_future_obs_idx = [None] * max_size
 
-    def add_sample(self, observation, action, reward, terminal,
-                   next_observation, **kwargs):
+    def add_sample(
+        self, observation, action, reward, terminal, next_observation, **kwargs
+    ):
         raise NotImplementedError("Only use add_path")
 
     def add_path(self, path):
@@ -63,9 +61,7 @@ class HerReplayBuffer(EnvReplayBuffer):
         if self._top + path_len >= self._max_replay_buffer_size:
             num_pre_wrap_steps = self._max_replay_buffer_size - self._top
             # numpy slice
-            pre_wrap_buffer_slice = np.s_[
-                                    self._top:self._top + num_pre_wrap_steps, :
-                                    ]
+            pre_wrap_buffer_slice = np.s_[self._top : self._top + num_pre_wrap_steps, :]
             pre_wrap_path_slice = np.s_[0:num_pre_wrap_steps, :]
 
             num_post_wrap_steps = path_len - num_pre_wrap_steps
@@ -84,12 +80,14 @@ class HerReplayBuffer(EnvReplayBuffer):
                 self._num_steps_left[buffer_slice] = num_steps_left[path_slice]
             # Pointers from before the wrap
             for i in range(self._top, self._max_replay_buffer_size):
-                self._idx_to_future_obs_idx[i] = np.hstack((
-                    # Pre-wrap indices
-                    np.arange(i, self._max_replay_buffer_size),
-                    # Post-wrap indices
-                    np.arange(0, num_post_wrap_steps)
-                ))
+                self._idx_to_future_obs_idx[i] = np.hstack(
+                    (
+                        # Pre-wrap indices
+                        np.arange(i, self._max_replay_buffer_size),
+                        # Post-wrap indices
+                        np.arange(0, num_post_wrap_steps),
+                    )
+                )
             # Pointers after the wrap
             for i in range(0, num_post_wrap_steps):
                 self._idx_to_future_obs_idx[i] = np.arange(
@@ -97,7 +95,7 @@ class HerReplayBuffer(EnvReplayBuffer):
                     num_post_wrap_steps,
                 )
         else:
-            slc = np.s_[self._top:self._top + path_len, :]
+            slc = np.s_[self._top : self._top + path_len, :]
             self._observations[slc] = obs
             self._actions[slc] = actions
             self._rewards[slc] = rewards
@@ -106,9 +104,7 @@ class HerReplayBuffer(EnvReplayBuffer):
             self._goals[slc] = goals
             self._num_steps_left[slc] = num_steps_left
             for i in range(self._top, self._top + path_len):
-                self._idx_to_future_obs_idx[i] = np.arange(
-                    i, self._top + path_len
-                )
+                self._idx_to_future_obs_idx[i] = np.arange(i, self._top + path_len)
         self._top = (self._top + path_len) % self._max_replay_buffer_size
         self._size = min(self._size + path_len, self._max_replay_buffer_size)
 
@@ -126,9 +122,7 @@ class HerReplayBuffer(EnvReplayBuffer):
                 next_obs_i = int(np.random.randint(0, num_options))
             next_obs_idxs.append(possible_next_obs_idxs[next_obs_i])
         next_obs_idxs = np.array(next_obs_idxs)
-        resampled_goals = self.env.convert_obs_to_goals(
-            self._next_obs[next_obs_idxs]
-        )
+        resampled_goals = self.env.convert_obs_to_goals(self._next_obs[next_obs_idxs])
         num_goals_are_from_rollout = int(
             batch_size * self.fraction_goals_are_rollout_goals
         )
