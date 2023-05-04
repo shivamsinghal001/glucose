@@ -271,7 +271,7 @@ class SimglucoseEnv(gym.Env):
             act = self.cnt.manual_bb_policy(carbs=carbs, glucose=glucose)
         else:
             act = Action(basal=0, bolus=action)
-        _, reward, _, info = self.env.step(action=act, reward_fun=self.reward_fun, cho=cho, true_reward_fn=self.true_reward_fn)
+        _, reward, _, info = self.env.step(action=act, reward_fun=self.reward_fun, cho=cho, true_reward_fn=self.true_reward_fn, proxy_reward_fn=self.proxy_reward_fn)
         info["glucose_controller_actions"] = act.basal + act.bolus
         state = self.get_state(self.norm)
         done = self.is_done()

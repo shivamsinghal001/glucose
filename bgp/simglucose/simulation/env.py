@@ -51,6 +51,7 @@ class T1DSimEnv(object):
         self.model_device = model_device
         self.rew_hist = [0]
         self.true_rew_hist = [0]
+        self.proxy_rew_hist = [0]
         self.magni_risk_hist = [0]
         self.BG_hist = [0]
         self.insulin_hist = [0]
@@ -82,7 +83,7 @@ class T1DSimEnv(object):
 
         return CHO, insulin, BG, CGM
 
-    def step(self, action, reward_fun, cho, true_reward_fn=None):
+    def step(self, action, reward_fun, cho, true_reward_fn=None, proxy_reward_fn=None):
         '''
         action is a namedtuple with keys: basal, bolus
         '''
@@ -156,8 +157,14 @@ class T1DSimEnv(object):
             true_rew = true_reward_fn(bg_hist=self.BG_hist, cgm_hist=self.CGM_hist, insulin_hist=self.insulin_hist,
                             risk_hist=self.risk_hist)
 
+        proxy_rew = 0
+        if proxy_reward_fn is not None:
+            proxy_rew = proxy_reward_fn(bg_hist=self.BG_hist, insulin_hist=self.insulin_hist, cgm_hist=self.CGM_hist,
+                            risk_hist=self.risk_hist)
+
         self.rew_hist.append(reward)
         self.true_rew_hist.append(true_rew)
+        self.proxy_rew_hist.append(proxy_rew)
         done = BG < 40 or BG > 350
         obs = Observation(CGM=CGM)
 
@@ -170,6 +177,7 @@ class T1DSimEnv(object):
             meal=CHO,
             patient_state=self.patient.state,
             true_reward=true_rew,
+            proxy_reward=proxy_rew,
             magni_risk=magni_risk,
             bg=BG,
             insulin=insulin,
@@ -202,8 +210,10 @@ class T1DSimEnv(object):
         self.insulin_hist = [0]
         self.last_rew = np.sum(self.rew_hist)
         self.last_true_rew = np.sum(self.true_rew_hist)
+        self.last_proxy_rew = np.sum(self.proxy_rew_hist)
         self.rew_hist = [0]
         self.true_rew_hist = [0]
+        self.proxy_rew_hist = [0]
 
     def reset(self, sensor_seed_change=True, incr_day=0):
         self.patient.reset()
@@ -251,5 +261,6 @@ class T1DSimEnv(object):
         df['Magni_Risk'] = pd.Series(self.magni_risk_hist)
         df['Reward'] = pd.Series(self.rew_hist)
         df['True reward'] = pd.Series(self.true_rew_hist)
+        df["Proxy reward"] = pd.Series(self.proxy_rew_hist)
         df = df.set_index('Time')
         return df
