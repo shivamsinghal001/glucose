@@ -327,7 +327,7 @@ class SimglucoseEnv(gym.Env):
         )
         # info["glucose_controller_actions"] = act.basal + act.bolus
         info["glucose_pid_controller"] = baseline_action
-        assert self.action_space.contains(info["glucose_pid_controller"])
+        assert self.action_space.contains(baseline_action)
         state = self.get_state(self.norm)
         done = self.is_done()
         if done and self.t < self.horizon and self.termination_penalty is not None:
@@ -697,7 +697,7 @@ class SimglucoseEnv(gym.Env):
 
     @property
     def action_space(self):
-        return spaces.Box(low=0, high=0.1, shape=(1,))
+        return spaces.Box(low=0, high=0.1, shape=(1,), dtype=np.float64)
 
     @property
     def observation_space(self):
