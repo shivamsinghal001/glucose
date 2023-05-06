@@ -311,8 +311,11 @@ class SimglucoseEnv(gym.Env):
             self.rolling.append(action)
             if len(self.rolling) > 12:
                 self.rolling = self.rolling[1:]
+        baseline_action = np.array([self.pid.step(self.env.CGM_hist[-1])])
+        baseline_action = np.clip(baseline_action, self.action_space.low[0], self.action_space.high[0])
         if self.is_baseline:
-            act = self.cnt.manual_bb_policy(carbs=carbs, glucose=glucose)
+            # act = self.cnt.manual_bb_policy(carbs=carbs, glucose=glucose)
+            act = Action(basal=0, bolus=action)
         else:
             act = Action(basal=0, bolus=action)
         _, reward, _, info = self.env.step(
@@ -322,8 +325,9 @@ class SimglucoseEnv(gym.Env):
             true_reward_fn=self.true_reward_fn,
             proxy_reward_fn=self.proxy_reward_fn,
         )
-        info["glucose_controller_actions"] = act.basal + act.bolus
-        info["glucose_pid_controller"] = self.pid.step(self.env.CGM_hist[-1])
+        # info["glucose_controller_actions"] = act.basal + act.bolus
+        info["glucose_pid_controller"] = baseline_action
+        assert self.action_space.contains(info["glucose_pid_controller"])
         state = self.get_state(self.norm)
         done = self.is_done()
         if done and self.t < self.horizon and self.termination_penalty is not None:
