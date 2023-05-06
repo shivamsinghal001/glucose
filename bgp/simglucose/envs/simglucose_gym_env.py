@@ -323,6 +323,7 @@ class SimglucoseEnv(gym.Env):
             proxy_reward_fn=self.proxy_reward_fn,
         )
         info["glucose_controller_actions"] = act.basal + act.bolus
+        info["glucose_pid_controller"] = self.pid.step(self.env.CGM_hist[-1])
         state = self.get_state(self.norm)
         done = self.is_done()
         if done and self.t < self.horizon and self.termination_penalty is not None:
