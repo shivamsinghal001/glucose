@@ -258,17 +258,22 @@ class SimglucoseEnv(gym.Env):
             action = (action + self.action_bias) * self.action_scale
         return max(0, action)
 
+    def _get_action_scale(self):
+        if self.action_scale == "basal":
+            return (self.ideal_basal * self.basal_scaling) / (1 + self.action_bias)
+        else:
+            return self.action_scale
+
+    def _scale_action(self, action):
+        return (action + self.action_bias) * self._get_action_scale()
+
+    def _unscale_action(self, action):
+        return action / self._get_action_scale() - self.action_bias
+
     def _step(self, action, cho=None, use_action_scale=True):
         # cho controls if carbs are eaten, else taken from meal policy
         if type(action) is np.ndarray:
             action = action.item()
-        ma = self.announce_meal(5)
-        carbs = ma[0]
-        if np.random.uniform() < self.carb_miss_prob:
-            carbs = 0
-        error = np.random.normal(0, self.carb_error_std)
-        carbs = carbs + carbs * error
-        glucose = self.env.CGM_hist[-1]
         if use_action_scale:
             if self.action_scale == "basal":
                 # 288 samples per day, bolus insulin should be 75% of insulin dose
@@ -282,6 +287,13 @@ class SimglucoseEnv(gym.Env):
         if self.residual_basal:
             action += self.ideal_basal
         if self.residual_bolus:
+            ma = self.announce_meal(5)
+            carbs = ma[0]
+            if np.random.uniform() < self.carb_miss_prob:
+                carbs = 0
+            error = np.random.normal(0, self.carb_error_std)
+            carbs = carbs + carbs * error
+            glucose = self.env.CGM_hist[-1]
             if carbs > 0:
                 carb_correct = carbs / self.CR
                 hyper_correct = (
@@ -311,8 +323,24 @@ class SimglucoseEnv(gym.Env):
             self.rolling.append(action)
             if len(self.rolling) > 12:
                 self.rolling = self.rolling[1:]
-        baseline_action = self.pid.step(self.env.CGM_hist[-1])
-        baseline_action = np.clip(baseline_action, self.action_space.low[0], self.action_space.high[0])
+
+        baseline_action = self.pid.step(self.env.CGM_hist[-1]) + np.random.normal(0, 0.003)
+        unscaled_baseline_action = (
+            self._unscale_action(baseline_action)
+            if use_action_scale
+            else baseline_action
+        )
+        unscaled_baseline_action = np.clip(
+            unscaled_baseline_action,
+            self.action_space.low[0],
+            self.action_space.high[0],
+        )
+        baseline_action = (
+            self._scale_action(unscaled_baseline_action)
+            if use_action_scale
+            else unscaled_baseline_action
+        )
+
         if self.is_baseline:
             # act = self.cnt.manual_bb_policy(carbs=carbs, glucose=glucose)
             act = Action(basal=0, bolus=baseline_action)
@@ -326,7 +354,7 @@ class SimglucoseEnv(gym.Env):
             proxy_reward_fn=self.proxy_reward_fn,
         )
         # info["glucose_controller_actions"] = act.basal + act.bolus
-        info["glucose_pid_controller"] = np.array([baseline_action])
+        info["glucose_pid_controller"] = np.array([unscaled_baseline_action])
         assert self.action_space.contains(info["glucose_pid_controller"])
         state = self.get_state(self.norm)
         done = self.is_done()
