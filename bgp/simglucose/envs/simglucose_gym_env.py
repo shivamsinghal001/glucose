@@ -112,11 +112,11 @@ class SimglucoseEnv(gym.Env):
         self.universal = config["universal"]
         if config["seeds"] is None:
             seed_list = self._seed()
-            config["seeds"] = Seed(
-                numpy_seed=seed_list[0],
-                sensor_seed=seed_list[1],
-                scenario_seed=seed_list[2],
-            )
+            config["seeds"] = {
+                "numpy": seed_list[0],
+                "sensor": seed_list[1],
+                "scenario": seed_list[2],
+            }
         if config["patient_name"] is None:
             if self.universal:
                 config["patient_name"] = np.random.choice(self.universe)
@@ -719,6 +719,7 @@ class SimglucoseEnv(gym.Env):
         # Derive a random seed. This gets passed as a uint, but gets
         # checked as an int elsewhere, so we need to keep it below
         # 2**31.
+        seed1 = seed1 % 2**31
         seed2 = seeding.hash_seed(seed1 + 1) % 2**31
         seed3 = seeding.hash_seed(seed2 + 1) % 2**31
         return [seed1, seed2, seed3]
