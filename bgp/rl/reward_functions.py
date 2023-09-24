@@ -152,6 +152,6 @@ def expected_patient_cost(bg_hist, insulin_hist, **kwargs):
     expected_cost = 0.32 * np.mean(insulin_hist[-1])  # Cost of the insulin.
     if bg_hist[-1] < 70:
         # Patient is hypoglycemic, so add potential cost of hospital visit.
-        expected_cost += 1350 / (12 * 24 * 365)
+        expected_cost += 10 * 1350 / (12 * 24 * 365)
 
     return -expected_cost
