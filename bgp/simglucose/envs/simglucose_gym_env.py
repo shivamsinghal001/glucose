@@ -16,6 +16,8 @@ import bgp.simglucose.controller.basal_bolus_ctrller as bbc
 
 from importlib import resources
 
+from gymnasium.wrappers import EnvCompatibility
+
 import pandas as pd
 import numpy as np
 import joblib
@@ -742,7 +744,7 @@ class SimglucoseEnv(gymnasium.Env):
             )
 
 
-register_env("glucose_env", lambda config: SimglucoseEnv(config))
+register_env("glucose_env", lambda config: EnvCompatibility(SimglucoseEnv(config)))
 register_env(
-    "glucose_env_multiagent", make_multi_agent(lambda config: SimglucoseEnv(config))
+    "glucose_env_multiagent", make_multi_agent(lambda config: EnvCompatibility(SimglucoseEnv(config)))
 )
