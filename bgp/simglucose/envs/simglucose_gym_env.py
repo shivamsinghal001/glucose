@@ -22,6 +22,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import copy
+import gymnasium
 from gymnasium import spaces
 from gymnasium.utils import seeding
 from datetime import datetime
