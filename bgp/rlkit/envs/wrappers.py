@@ -1,6 +1,7 @@
 import numpy as np
-from gym import Env
-from gym.spaces import Box
+import gymnasium
+from gymnasium import Env
+from gymnasium.spaces import Box
 
 from bgp.rlkit.core.serializable import Serializable
 

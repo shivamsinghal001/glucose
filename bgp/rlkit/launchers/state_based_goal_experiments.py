@@ -1,4 +1,4 @@
-import gym
+import gymnasium
 
 # Trigger environment registrations
 # noinspection PyUnresolvedReferences
@@ -20,7 +20,7 @@ from bgp.rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBu
 
 def her_td3_experiment(variant):
     if "env_id" in variant:
-        env = gym.make(variant["env_id"])
+        env = gymnasium.make(variant["env_id"])
     else:
         env = variant["env_class"](**variant["env_kwargs"])
 

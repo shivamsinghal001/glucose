@@ -4,7 +4,8 @@ import torch
 
 import cv2
 import numpy as np
-from gym.spaces import Box, Dict
+import gymnasium
+from gymnasium.spaces import Box, Dict
 import bgp.rlkit.torch.pytorch_util as ptu
 from multiworld.core.multitask_env import MultitaskEnv
 from multiworld.envs.env_util import (

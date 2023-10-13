@@ -2,7 +2,8 @@ import numpy as np
 from collections import namedtuple
 import torch
 from bgp.rlkit.data_management.simple_replay_buffer import SimpleReplayBuffer
-from gym.spaces import Box, Discrete, Tuple
+import gymnasium
+from gymnasium.spaces import Box, Discrete, Tuple
 
 
 class EnvReplayBuffer(SimpleReplayBuffer):

@@ -1,5 +1,6 @@
 import numpy as np
-from gym.spaces import Dict, Discrete
+import gymnasium
+from gymnasium.spaces import Dict, Discrete
 
 from bgp.rlkit.data_management.replay_buffer import ReplayBuffer
 
@@ -228,7 +229,7 @@ class ObsDictRelabelingBuffer(ReplayBuffer):
                 new_actions,
                 new_next_obs_dict,
             )
-        else:  # Assuming it's a (possibly wrapped) gym GoalEnv
+        else:  # Assuming it's a (possibly wrapped) gymnasium GoalEnv
             new_rewards = np.ones((batch_size, 1))
             for i in range(batch_size):
                 new_rewards[i] = self.env.compute_reward(

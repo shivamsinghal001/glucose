@@ -1,8 +1,9 @@
 from collections import OrderedDict
 
 import numpy as np
-from gym.envs.mujoco import mujoco_env
-from gym.spaces import Box
+import gymnasium
+from gymnasium.envs.mujoco import mujoco_env
+from gymnasium.spaces import Box
 
 from bgp.rlkit.core import logger as default_logger
 from bgp.rlkit.core.eval_util import create_stats_ordered_dict

@@ -20,9 +20,8 @@ import pandas as pd
 import numpy as np
 import joblib
 import copy
-import gym
-from gym import spaces
-from gym.utils import seeding
+from gymnasium import spaces
+from gymnasium.utils import seeding
 from datetime import datetime
 import warnings
 import logging
@@ -81,9 +80,9 @@ def reward_name_to_function(reward_name):
 logger = logging.getLogger(__name__)
 
 
-class SimglucoseEnv(gym.Env):
+class SimglucoseEnv(gymnasium.Env):
     """
-    A gym environment supporting SAC learning. Uses PID control for initialization
+    A gymnasium environment supporting SAC learning. Uses PID control for initialization
     """
 
     metadata = {"render.modes": ["human"]}

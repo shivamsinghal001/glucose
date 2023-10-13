@@ -1,6 +1,6 @@
 import random
-
-from gym.spaces import Discrete
+import gymnasium
+from gymnasium.spaces import Discrete
 
 from bgp.rlkit.exploration_strategies.base import RawExplorationStrategy
 from bgp.rlkit.core.serializable import Serializable

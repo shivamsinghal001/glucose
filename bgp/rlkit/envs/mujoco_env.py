@@ -3,7 +3,10 @@ from os import path
 
 import mujoco_py
 import numpy as np
-from gym.envs.mujoco import mujoco_env
+
+import gymnasium
+
+from gymnasium.envs.mujoco import mujoco_env
 
 from bgp.rlkit.core.serializable import Serializable
 

@@ -2,7 +2,8 @@ import abc
 from collections import OrderedDict
 
 import numpy as np
-from gym.spaces import Box
+import gymnasium
+from gymnasium.spaces import Box
 
 from bgp.rlkit.core.eval_util import create_stats_ordered_dict
 from bgp.rlkit.envs.wrappers import ProxyEnv

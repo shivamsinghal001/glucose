@@ -25,7 +25,7 @@ from bgp.rlkit.exploration_strategies.base import PolicyWrappedWithExplorationSt
 from bgp.rlkit.torch.her.her import HerTd3
 from bgp.rlkit.torch.networks import FlattenMlp, TanhMlpPolicy
 from bgp.rlkit.util.video import dump_video
-import gym
+import gymnasium
 
 # trigger registration
 # noinspection PyUnresolvedReferences
@@ -154,9 +154,9 @@ def generate_vae_dataset(variant):
             now = time.time()
 
             if env_id is not None:
-                import gym
+                import gymnasium
 
-                env = gym.make(env_id)
+                env = gymnasium.make(env_id)
             else:
                 if vae_dataset_specific_env_kwargs is None:
                     vae_dataset_specific_env_kwargs = {}
@@ -363,7 +363,7 @@ def get_envs(variant):
 
     vae = load_local_or_remote_file(vae_path) if type(vae_path) is str else vae_path
     if "env_id" in variant:
-        env = gym.make(variant["env_id"])
+        env = gymnasium.make(variant["env_id"])
     else:
         env = variant["env_class"](**variant["env_kwargs"])
 

@@ -1,7 +1,8 @@
 from collections import OrderedDict
 
 import numpy as np
-from gym.envs.mujoco import HalfCheetahEnv
+import gymnasium
+from gymnasium.envs.mujoco import HalfCheetahEnv
 
 from bgp.rlkit.core.eval_util import create_stats_ordered_dict
 from bgp.rlkit.core.serializable import Serializable
