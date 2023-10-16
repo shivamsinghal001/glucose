@@ -532,7 +532,7 @@ class SimglucoseEnv(gymnasium.Env):
         self.seeds["scenario"] += incr
         self.seeds["sensor"] += incr
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         return self._reset(), {}
 
     def set_patient_dependent_values(self, patient_name, noise_scale=1.0):
