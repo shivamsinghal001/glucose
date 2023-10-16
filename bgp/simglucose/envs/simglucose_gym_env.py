@@ -16,8 +16,6 @@ import bgp.simglucose.controller.basal_bolus_ctrller as bbc
 
 from importlib import resources
 
-from gymnasium.wrappers import EnvCompatibility
-
 import pandas as pd
 import numpy as np
 import joblib
@@ -246,7 +244,7 @@ class SimglucoseEnv(gymnasium.Env):
         self.t += 1
         obs, reward, done, info = self._step(action, cho=None)
         reward *= self.reward_scale
-        return obs, reward, done, info
+        return obs, reward, done, self.t >= self.horizon, info
 
     def translate(self, action):
         if self.action_scale == "basal":
@@ -535,7 +533,7 @@ class SimglucoseEnv(gymnasium.Env):
         self.seeds["sensor"] += incr
 
     def reset(self):
-        return self._reset()
+        return self._reset(), {}
 
     def set_patient_dependent_values(self, patient_name, noise_scale=1.0):
         self.patient_name = patient_name
@@ -745,7 +743,7 @@ class SimglucoseEnv(gymnasium.Env):
             )
 
 
-register_env("glucose_env", lambda config: EnvCompatibility(SimglucoseEnv(config)))
+register_env("glucose_env", lambda config: SimglucoseEnv(config))
 register_env(
-    "glucose_env_multiagent", make_multi_agent(lambda config: EnvCompatibility(SimglucoseEnv(config)))
+    "glucose_env_multiagent", make_multi_agent(lambda config: SimglucoseEnv(config))
 )
