@@ -720,10 +720,12 @@ class SimglucoseEnv(gymnasium.Env):
         # checked as an int elsewhere, so we need to keep it below
         # 2**31.
         seed1 = seed1 % 2**31
-        seed2 = seeding.hash_seed(seed1 + 1) % 2**31
-        seed3 = seeding.hash_seed(seed2 + 1) % 2**31
+        _, seed2 = seeding.np_random(seed=seed1) 
+        seed2 = seed2 % 2**31
+        _, seed3 = seeding.np_random(seed=seed2) 
+        seed3 = seed3 % 2**31 
         return [seed1, seed2, seed3]
-
+    
     @property
     def action_space(self):
         return spaces.Box(low=0, high=0.1, shape=(1,), dtype=np.float64)
