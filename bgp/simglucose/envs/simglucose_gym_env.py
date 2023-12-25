@@ -242,9 +242,9 @@ class SimglucoseEnv(gymnasium.Env):
 
     def step(self, action):
         self.t += 1
-        obs, reward, done, info = self._step(action, cho=None)
+        obs, reward, terminated, info = self._step(action, cho=None)
         reward *= self.reward_scale
-        return obs, reward, done, self.t >= self.horizon, info
+        return obs, reward, terminated, self.t >= self.horizon, info
 
     def translate(self, action):
         if self.action_scale == "basal":
@@ -357,16 +357,16 @@ class SimglucoseEnv(gymnasium.Env):
         info["glucose_pid_controller"] = np.array([unscaled_baseline_action])
         assert self.action_space.contains(info["glucose_pid_controller"])
         state = self.get_state(self.norm)
-        done = self.is_done()
-        if done and self.t < self.horizon and self.termination_penalty is not None:
+        terminated = self.is_terminated()
+        if terminated and self.t < self.horizon and self.termination_penalty is not None:
             reward = reward - self.termination_penalty
         reward = reward + self.reward_bias
         if self.use_only_during_day and (
             self.env.time.hour > 20 or self.env.time.hour < 5
         ):
-            done = True
+            terminated = True
         info["reward"] = reward
-        return state, reward, done, info
+        return state, reward, terminated, info
 
     def announce_meal(self, meal_announce=None):
         t = (
@@ -510,15 +510,11 @@ class SimglucoseEnv(gymnasium.Env):
         ):
             return False
 
-    def is_done(self):
-        horizon_complete = False
-        if self.horizon is not None:
-            horizon_complete = self.t >= self.horizon
+    def is_terminated(self):
         #         logger.info('Blood glucose: {}'.format(self.env.BG_hist[-1]))
         return (
             self.env.BG_hist[-1] < self.reset_lim["lower_lim"]
             or self.env.BG_hist[-1] > self.reset_lim["upper_lim"]
-            or horizon_complete
         )
 
     def increment_seed(self, incr=1):
