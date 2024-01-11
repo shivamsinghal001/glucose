@@ -9,7 +9,6 @@ setup(
     install_requires=[
         'cachetools>=4.1.0',
         'dm-tree>=0.1.7',
-        'gym>=0.21.0',
         'joblib>=0.14.1',
         'matplotlib>=3.1.2',
         'numpy',
