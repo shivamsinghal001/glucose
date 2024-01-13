@@ -216,7 +216,7 @@ class SimglucoseEnv(gymnasium.Env):
         )
         self.env.scenario.day = 0
 
-        # Baseline
+        # safe policy
         self.cnt = bbc.ManualBBController(
             target=self.target,
             cr=self.CR,
@@ -327,26 +327,26 @@ class SimglucoseEnv(gymnasium.Env):
             if len(self.rolling) > 12:
                 self.rolling = self.rolling[1:]
 
-        baseline_action = self.pid.step(self.env.CGM_hist[-1]) + np.random.normal(0, self.safe_policy_noise_std_dev)
-        unscaled_baseline_action = (
-            self._unscale_action(baseline_action)
+        safe_policy_action = self.pid.step(self.env.CGM_hist[-1]) + np.random.normal(0, self.safe_policy_noise_std_dev)
+        unscaled_safe_policy_action = (
+            self._unscale_action(safe_policy_action)
             if use_action_scale
-            else baseline_action
+            else safe_policy_action
         )
-        unscaled_baseline_action = np.clip(
-            unscaled_baseline_action,
+        unscaled_safe_policy_action = np.clip(
+            unscaled_safe_policy_action,
             self.action_space.low[0],
             self.action_space.high[0],
         )
-        baseline_action = (
-            self._scale_action(unscaled_baseline_action)
+        safe_policy_action = (
+            self._scale_action(unscaled_safe_policy_action)
             if use_action_scale
-            else unscaled_baseline_action
+            else unscaled_safe_policy_action
         )
 
         if self.is_safe_policy:
             # act = self.cnt.manual_bb_policy(carbs=carbs, glucose=glucose)
-            act = Action(basal=0, bolus=baseline_action)
+            act = Action(basal=0, bolus=safe_policy_action)
         else:
             act = Action(basal=0, bolus=action)
         _, reward, _, info = self.env.step(
@@ -357,7 +357,7 @@ class SimglucoseEnv(gymnasium.Env):
             proxy_reward_fn=self.proxy_reward_fn,
         )
         # info["glucose_controller_actions"] = act.basal + act.bolus
-        info["glucose_pid_controller"] = np.array([unscaled_baseline_action])
+        info["glucose_pid_controller"] = np.array([unscaled_safe_policy_action])
         assert self.action_space.contains(info["glucose_pid_controller"])
         state = self.get_state(self.norm)
         terminated = self.is_terminated()
