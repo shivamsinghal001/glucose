@@ -208,6 +208,9 @@ class SimglucoseEnv(gymnasium.Env):
         self.patient_name = config["patient_name"]
         self.reward_scale: float = config.get("reward_scale", 1)
         self.is_safe_policy = config.get("is_safe_policy", False)
+        self.safe_policy_noise_std_dev = config.get("safe_policy_noise_std_dev", 0)
+        if self.safe_policy_noise_std_dev < 0:
+            self.safe_policy_noise_std_dev = 0
         self.set_patient_dependent_values(
             self.patient_name, noise_scale=config["noise_scale"]
         )
@@ -324,7 +327,7 @@ class SimglucoseEnv(gymnasium.Env):
             if len(self.rolling) > 12:
                 self.rolling = self.rolling[1:]
 
-        baseline_action = self.pid.step(self.env.CGM_hist[-1]) + np.random.normal(0, 0.003)
+        baseline_action = self.pid.step(self.env.CGM_hist[-1]) + np.random.normal(0, self.safe_policy_noise_std_dev)
         unscaled_baseline_action = (
             self._unscale_action(baseline_action)
             if use_action_scale
