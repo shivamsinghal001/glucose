@@ -207,7 +207,7 @@ class SimglucoseEnv(gymnasium.Env):
         self.custom_meal_size = config["custom_meal_size"]
         self.patient_name = config["patient_name"]
         self.reward_scale: float = config.get("reward_scale", 1)
-        self.is_safe_policy = config.get("is_safe_policy", False)
+        self.use_safe_policy_actions = config.get("use_safe_policy_actions", False)
         self.safe_policy_noise_std_dev = config.get("safe_policy_noise_std_dev", 0)
         if self.safe_policy_noise_std_dev < 0:
             self.safe_policy_noise_std_dev = 0
@@ -344,7 +344,7 @@ class SimglucoseEnv(gymnasium.Env):
             else unscaled_safe_policy_action
         )
 
-        if self.is_safe_policy:
+        if self.use_safe_policy_actions:
             # act = self.cnt.manual_bb_policy(carbs=carbs, glucose=glucose)
             act = Action(basal=0, bolus=safe_policy_action)
         else:
