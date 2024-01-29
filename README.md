@@ -6,7 +6,14 @@ This repository is based on the [code](https://github.com/aypan17/reward-misspec
 The original code release for the SimGlucose Environment (Deep Reinforcement Learning for Closed-Loop Blood Glucose Control, MLHC 2020) can be found [here](https://github.com/MLD3/RL4BG).
 
 ## Installation
-Installing the requirements from our main repository will install all required packages for this environment as well.
+Running 
+```
+pip install -r requirements.txt
+```
+from our main repository will install this package along with all of its depedencies. 
 
-To install this envvironment, simply run 
+To install only this envvironment, simply run 
+```
+pip install git+https://github.com/shivamsinghal001/glucose.git
+```
 
